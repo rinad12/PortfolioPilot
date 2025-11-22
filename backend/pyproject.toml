@@ -50,6 +50,7 @@ dependencies = [
     "rich>=13.9.0", # Pretty-print for local development
     "yfinance>=0.2.66",
     "sqlalchemy>=2.0.44",
+    "dataclasses>=0.8",
 ]
 
 

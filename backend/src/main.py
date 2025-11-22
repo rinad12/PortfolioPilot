@@ -1,4 +1,4 @@
-from agents.base import Agent
+from backend.src.agents.client import Agent
 
 def main():
     agent = Agent()
