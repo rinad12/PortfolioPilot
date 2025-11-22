@@ -205,3 +205,19 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Next.js / Frontend
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+frontend/.env*.local
+frontend/.vercel
+frontend/.turbo
+frontend/dist/
+frontend/build/
+frontend/.cache/
+
+# Backend specific
+backend/.venv/
+backend/dist/
+backend/*.egg-info/

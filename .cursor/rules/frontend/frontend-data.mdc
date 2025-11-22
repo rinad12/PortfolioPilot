@@ -1,0 +1,21 @@
+---
+description: Standards for API calls, Server Actions, and Data Transformation.
+globs: frontend/actions/**/*.ts, frontend/lib/api/**/*.ts, frontend/app/**/page.tsx
+alwaysApply: false
+---
+# Data & Integration Standards
+
+## Data Fetching
+- **Server Actions**: Prefer Next.js Server Actions for mutations (POST/PUT/DELETE).
+- **Fetch API**: Use `fetch()` in Server Components with caching strategies defined.
+
+## The "Glue" (Crucial)
+- **Snake to Camel**: Python returns `snake_case` (e.g., `user_id`). Frontend uses `camelCase` (e.g., `userId`).
+  - **Rule**: You must explicitly map or transform the data upon receipt, OR use a TypeScript interface that maps the API response exactly.
+- **Type Safety**:
+  - Import shared types from `@/types` (if using a shared monorepo package).
+  - If defining locally, ensure the interface matches the Pydantic Schema field-for-field.
+
+## Error Handling
+- **Graceful UI**: Never crash the whole page on a fetch error.
+- **Toast Notifications**: Use `toast()` (sonner/radix) to show API errors to the user.

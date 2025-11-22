@@ -1,0 +1,19 @@
+---
+description: Standards for writing Pytest tests.
+globs: backend/tests/**/*.py
+alwaysApply: false
+---
+# Backend Testing Standards
+
+## Tools
+- **Framework**: Use `pytest` and `pytest-asyncio`.
+- **Client**: Use `httpx.AsyncClient` for integration tests.
+
+## Structure
+- **Fixtures**: Place reusable setup (DB sessions, auth tokens) in `tests/conftest.py`.
+- **Isolation**: Each test must roll back DB changes after execution. Do not persist test data.
+
+## Coverage
+- **Happy Path**: Test the successful scenario.
+- **Edge Cases**: explicitly test 404 (Not Found) and 422 (Validation Error) scenarios.
+- **Mocking**: Mock external APIs (e.g., Stripe, AWS) using `unittest.mock` or `respx`. Never hit real external APIs during tests.
