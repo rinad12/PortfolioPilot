@@ -49,12 +49,16 @@ dependencies = [
     "structlog>=24.4.0", # The logging library
     "rich>=13.9.0", # Pretty-print for local development
     "yfinance>=0.2.66",
+    "sqlalchemy>=2.0.44",
 ]
 
-[tool.uv]
-src = "src"
+
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = "test_*.py"
+pythonpath = ["src"]
+
+[tool.uv]
+package = true

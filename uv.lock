@@ -2319,7 +2319,7 @@ wheels = [
 [[package]]
 name = "portfoliopilot"
 version = "0.1.1"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
     { name = "anthropic" },
@@ -2350,6 +2350,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "rich" },
     { name = "scikit-learn" },
+    { name = "sqlalchemy" },
     { name = "sqlmodel" },
     { name = "structlog" },
     { name = "tenacity" },
@@ -2390,6 +2391,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "rich", specifier = ">=13.9.0" },
     { name = "scikit-learn", specifier = ">=1.5.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.44" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "structlog", specifier = ">=24.4.0" },
     { name = "tenacity", specifier = ">=9.0.0" },
