@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Database Service
+  db:
+    image: pgvector/pgvector:pg18
+    container_name: app_db_local
+    restart: always
+    # Load variables from .env file to configure the DB instance
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app_network
+
+# Define the volume explicitly
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge
