@@ -219,6 +219,5 @@ frontend/.cache/
 
 # Backend specific
 backend/.venv/
-backend/uv.lock
 backend/dist/
 backend/*.egg-info/
