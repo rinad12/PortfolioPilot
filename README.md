@@ -1,6 +1,5 @@
 # PortfolioPilot
 
-<<<<<<< HEAD
 An AI-powered portfolio management platform featuring automated financial market analysis and intelligent investment insights.
 
 ## Overview
