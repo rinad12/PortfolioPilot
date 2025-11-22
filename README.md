@@ -1,5 +1,6 @@
 # PortfolioPilot
 
+<<<<<<< HEAD
 An AI-powered portfolio management platform featuring automated financial market analysis and intelligent investment insights.
 
 ## Overview
@@ -172,3 +173,15 @@ npm run dev
 ## Contributing
 
 [Add contribution guidelines here]
+
+## Running Scripts
+
+```bash
+uv run script_name.py
+```
+
+## Running Tests
+
+```bash
+uv run pytest -v
+```
