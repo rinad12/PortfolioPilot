@@ -1,0 +1,23 @@
+---
+description: Core coding standards for all Python Backend files.
+globs: backend/**/*.py
+alwaysApply: false
+---
+# Python Core Standards
+
+## Syntax & Style
+- **Strict Typing**: All function arguments and return values MUST have type hints.
+  - *Bad*: `def process(data):`
+  - *Good*: `def process(data: Dict[str, Any]) -> ProcessingResult:`
+- **Async First**: Prefer `async/await` for all I/O bound operations (DB, API calls).
+- **Naming**:
+  - Variables/Functions: `snake_case`
+  - Classes: `PascalCase`
+  - Constants: `UPPER_CASE`
+
+## Error Handling
+- **Fail Fast**: Raise exceptions early rather than returning `None` or `False`.
+- **Custom Exceptions**: Use custom exception classes in `app/core/exceptions.py` rather than generic `Exception`.
+
+## Architecture
+- **Dependency Injection**: Use `Depends()` for shared logic (DB sessions, current user). Do not import global state variables.
