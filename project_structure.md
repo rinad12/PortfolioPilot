@@ -43,7 +43,10 @@ backend/
 ├── alembic.ini          # Alembic configuration
 ├── main.py              # Application entry point
 ├── pyproject.toml       # Python project configuration (uv)
-└── uv.lock              # Dependency lock file (if using uv)
+├── uv.lock              # Dependency lock file (if using uv)
+├── requirements-docker.txt  # Minimal dependencies for Docker (migrations + FastAPI only)
+├── Dockerfile           # Docker container for backend service (lightweight)
+└── entrypoint.sh        # Startup script that runs migrations automatically
 ```
 
 ### Backend Details
@@ -124,11 +127,15 @@ The project uses Alembic for database schema management:
 
 1. **Initial Setup**: The `db/init.sql` script creates the pgvector extension on container startup
 2. **Migrations**: All schema and data changes are managed via Alembic migrations in `backend/alembic/versions/`
-3. **Running Migrations**: 
+3. **Automatic Migrations**: 
+   - Simply run: `docker-compose up` (or `docker-compose up -d`)
+   - Migrations run automatically when the backend service starts
+   - The backend waits for the database to be healthy before applying migrations
+4. **Manual Migrations** (if needed outside Docker):
    - Start database: `docker-compose up -d db`
    - Apply migrations: `cd backend && uv run alembic upgrade head`
    - Check current state: `cd backend && uv run alembic current`
-4. **Creating New Migrations**: After defining new models, run `cd backend && uv run alembic revision --autogenerate -m "description"`
+5. **Creating New Migrations**: After defining new models, run `cd backend && uv run alembic revision --autogenerate -m "description"`
 
 See `backend/MIGRATIONS.md` for detailed migration documentation.
 

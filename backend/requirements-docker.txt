@@ -1,0 +1,12 @@
+# Minimal dependencies for Docker runtime (migrations + FastAPI only)
+fastapi==0.115.8
+uvicorn[standard]==0.31.1
+sqlalchemy>=2.0.44
+sqlmodel>=0.0.22
+psycopg[binary]>=3.2.0
+alembic>=1.13.0
+pydantic>=2.10.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.1
+asyncpg>=0.30.0
+

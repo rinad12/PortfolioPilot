@@ -1,5 +1,7 @@
 import asyncio
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -7,9 +9,15 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
 # Import SQLModel and models to register them with metadata
-from core.config import settings
+from core.config import get_settings
 from core.database import SQLModel
+
+# Get settings instance
+settings = get_settings()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -45,7 +53,7 @@ def run_migrations_offline() -> None:
 
     """
     # Use the database URL from application settings or config
-    url = settings.get_database_url
+    url = settings.get_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -65,7 +73,7 @@ def run_migrations_online() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.get_database_url
+    configuration["sqlalchemy.url"] = settings.get_database_url()
 
     connectable = engine_from_config(
         configuration,
