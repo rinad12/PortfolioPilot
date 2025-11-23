@@ -57,7 +57,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tests_backend"]
 python_files = "test_*.py"
 pythonpath = ["src"]
 

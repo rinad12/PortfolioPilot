@@ -7,7 +7,7 @@ from typing import Any
 
 import anthropic
 
-from .model_client import (
+from .general_model_client import (
     ModelClient,
     Message,
     GenerationConfig,
