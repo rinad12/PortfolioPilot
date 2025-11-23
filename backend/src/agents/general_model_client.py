@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Literal, Awaitable
+from typing import Any, Literal, Awaitable, Iterable
 
 
 Role = Literal["user", "assistant", "system", "tool"]
@@ -105,6 +105,22 @@ class ModelInfo:
     supports_tools: bool
     metadata: dict[str, Any] = field(default_factory=dict)
 
+@dataclass
+class StreamEvent:
+    """
+    Single streaming event from the model.
+
+    Semantics:
+    - type="text_delta": `text_delta` contains the next piece of text.
+    - type="done": streaming is finished.
+    - type="error": an error occurred; details in metadata/raw.
+    """
+
+    type: Literal["text_delta", "done", "error"]
+    text_delta: str | None = None
+    raw: Any | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
 class ModelClient(ABC):
     """
     Abstract interface for LLM / multimodal providers.
@@ -132,9 +148,23 @@ class ModelClient(ABC):
         self,
         messages: Sequence[Message],
         generation_config: GenerationConfig | None = None,
-        streaming: bool = False,
-    ) -> ModelResponse:
-        """Chat-based text generation."""
+        streaming: bool = True,
+    ) -> ModelResponse | Iterable[StreamEvent]:
+        """
+        Chat-based text generation.
+
+        Semantics:
+        - If `streaming` is False:
+            Return a fully assembled ModelResponse with the complete text.
+        - If `streaming` is True:
+            Return an Iterable[StreamEvent] that yields incremental events
+            (e.g. text_delta chunks) as the model generates output.
+
+        Implementations are free to:
+        - Ignore streaming=True and still return a full ModelResponse, OR
+        - Properly implement streaming and return an iterator / generator
+          of StreamEvent objects.
+        """
     
     def embed(
         self,
