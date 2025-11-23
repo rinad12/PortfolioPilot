@@ -13,9 +13,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+      # Initial database setup (pgvector extension)
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app_network
+    # IMPORTANT: After starting the DB container, run Alembic migrations:
+    #   1. Start container: docker-compose up -d db
+    #   2. Run migrations: cd backend && uv run alembic upgrade head
+    #   3. Verify current state: cd backend && uv run alembic current
 
 # Define the volume explicitly
 volumes:
