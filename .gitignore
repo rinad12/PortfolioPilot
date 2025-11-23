@@ -220,3 +220,6 @@ frontend/.cache/
 backend/.venv/
 backend/dist/
 backend/*.egg-info/
+
+# Tests reports
+backend/reports/
