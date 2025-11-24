@@ -37,6 +37,7 @@ dependencies = [
     "sqlmodel>=0.0.22",
     "psycopg[binary]>=3.2.0",
     "langchain-postgres>=0.0.12",
+    "alembic>=1.13.0", # Database migrations
     # --- Testing & Evaluation ---
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
