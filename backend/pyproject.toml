@@ -50,7 +50,11 @@ dependencies = [
     "structlog>=24.4.0", # The logging library
     "rich>=13.9.0", # Pretty-print for local development
     "yfinance>=0.2.66",
-    "sqlalchemy>=2.0.44"
+    "sqlalchemy>=2.0.44",
+    "asyncio>=4.0.0",
+    "typing>=3.10.0.0",
+    "google>=3.0.0",
+    "google-genai>=1.52.0",
 ]
 
 
