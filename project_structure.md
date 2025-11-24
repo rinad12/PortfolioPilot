@@ -9,9 +9,13 @@ PortfolioPilot/
 ├── backend/              # Python FastAPI backend application
 ├── frontend/             # Next.js frontend application
 ├── .cursor/              # Cursor IDE configuration and rules
-├── .gitignore           # Git ignore patterns
-├── README.md            # Project documentation
-└── project_structure.md # This file
+├── db/                   # Database initialization scripts
+├── .env                  # Environment variables (gitignored)
+├── .env.example          # Environment template for reference
+├── .gitignore            # Git ignore patterns
+├── docker-compose.yml    # Docker compose configuration for local database
+├── README.md             # Project documentation
+└── project_structure.md  # This file
 ```
 
 ## Backend Structure (`backend/`)
@@ -19,12 +23,30 @@ PortfolioPilot/
 ```
 backend/
 ├── src/
-│   └── portfoliopilot/  # Main Python package
-│       └── __init__.py
+│   ├── portfoliopilot/  # Main Python package
+│   │   └── __init__.py
+│   ├── core/            # Infrastructure and database configuration
+│   │   ├── __init__.py
+│   │   ├── config.py    # Pydantic settings for environment variables
+│   │   ├── database.py  # SQLModel engine and session management
+│   │   └── models/      # Database model definitions
+│   │       └── __init__.py
+│   ├── agents/          # Agent implementations
+│   ├── tools/           # Tool implementations
+│   └── data/            # Data processing modules
+├── alembic/             # Database migration scripts
+│   ├── versions/        # Migration files
+│   ├── env.py           # Alembic environment configuration
+│   ├── script.py.mako   # Migration template
+│   └── README           # Alembic documentation
 ├── tests/               # Pytest test files
+├── alembic.ini          # Alembic configuration
 ├── main.py              # Application entry point
 ├── pyproject.toml       # Python project configuration (uv)
-└── uv.lock              # Dependency lock file (if using uv)
+├── uv.lock              # Dependency lock file (if using uv)
+├── requirements-docker.txt  # Minimal dependencies for Docker (migrations + FastAPI only)
+├── Dockerfile           # Docker container for backend service (lightweight)
+└── entrypoint.sh        # Startup script that runs migrations automatically
 ```
 
 ### Backend Details
@@ -91,7 +113,29 @@ frontend/
 
 - Backend source: `backend/src/portfoliopilot/`
 - Backend config: `backend/pyproject.toml`
+- Backend core infrastructure: `backend/src/core/`
+- Database migrations: `backend/alembic/`
+- Migration configuration: `backend/alembic.ini`
 - Frontend source: `frontend/app/` (Next.js App Router)
 - Frontend config: `frontend/package.json`
 - Cursor rules: `.cursor/rules/`
+- Environment template: `.env.example`
+
+## Database Migration Workflow
+
+The project uses Alembic for database schema management:
+
+1. **Initial Setup**: The `db/init.sql` script creates the pgvector extension on container startup
+2. **Migrations**: All schema and data changes are managed via Alembic migrations in `backend/alembic/versions/`
+3. **Automatic Migrations**: 
+   - Simply run: `docker-compose up` (or `docker-compose up -d`)
+   - Migrations run automatically when the backend service starts
+   - The backend waits for the database to be healthy before applying migrations
+4. **Manual Migrations** (if needed outside Docker):
+   - Start database: `docker-compose up -d db`
+   - Apply migrations: `cd backend && uv run alembic upgrade head`
+   - Check current state: `cd backend && uv run alembic current`
+5. **Creating New Migrations**: After defining new models, run `cd backend && uv run alembic revision --autogenerate -m "description"`
+
+See `backend/MIGRATIONS.md` for detailed migration documentation.
 
