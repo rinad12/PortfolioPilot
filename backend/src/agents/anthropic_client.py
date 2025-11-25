@@ -30,15 +30,26 @@ class AnthropicClient(ModelClient):
             **client_options: Any,
         ) -> None:
             """
-            `api_key`:
-                Anthropic API key. If not provided, ANTHROPIC_API_KEY env var is used.
+            Client for interacting with Anthropic's Claude models via the Messages API.
 
-            `default_model`:
-                Default model name used when GenerationConfig.model is not set.
+   Supports:
+        - Text generation (single-turn) via `generate_text`
+        - Chat-style generation via `chat`, including streaming and non-streaming modes
+        - System prompts (aggregated from all `system` messages)
+        - Basic usage accounting and response metadata
+        - A simple async wrapper (`execute_async`) around the synchronous execution path
+        - Lightweight model metadata via `get_model`
 
-            `client_options`:
-                Extra options passed to the underlying Anthropic client
-                (e.g. base_url, timeout, default_headers, etc.).
+    Limitations:
+        - Text embeddings (`embed`)
+        - Image embeddings (`embed_image`)
+        - Image generation / editing / variation / analysis
+        - File operations (upload, download, list, delete, generate-from-file)
+        - Cost estimation (`estimate_cost`)
+        - Tool calling wiring (no `tools` / `tool_choice` integration; `tool` messages are ignored)
+
+
+
             """
             super().__init__(default_model=default_model, **client_options)
             self._client = anthropic.Anthropic(api_key=api_key, **client_options)
