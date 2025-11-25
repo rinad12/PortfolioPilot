@@ -33,6 +33,7 @@ class OpenAIClient(ModelClient):
     Not supported or partially supported:
       - Image embeddings (embed_image -> NotImplementedError)
       - Cost estimation: basic stub implementation.
+      - Image generation
     """
 
     def __init__(
@@ -313,31 +314,10 @@ class OpenAIClient(ModelClient):
         prompt: str,
         generation_config: GenerationConfig | None = None,
     ) -> ImageResponse:
-        """Text-to-image using `images.generate`."""
-        cfg = generation_config or GenerationConfig()
-        model = self._resolve_image_model(cfg)
-        size = cfg.extra.get("size", "1024x1024")
-        n = cfg.extra.get("n", 1)
-        response_format = cfg.extra.get("response_format", "url")  # or "b64_json"
-
-        response = self._client.images.generate(
-            model=model,
-            prompt=prompt,
-            n=n,
-            size=size,
-            response_format=response_format,
-            **{k: v for k, v in cfg.extra.items() if k not in {"size", "n", "response_format"}},
-        )
-
-        # Collect URLs or base64 strings
-        images: list[Any] = []
-        for item in response.data:
-            if response_format == "url":
-                images.append(item.url)
-            else:
-                images.append(item.b64_json)
-
-        return ImageResponse(images=images, raw=response)
+        """
+        Image generation using `images.generate`.
+        """
+        raise NotImplementedError("OpenAI image generation: not implemented.")
 
     def edit_image(
         self,
