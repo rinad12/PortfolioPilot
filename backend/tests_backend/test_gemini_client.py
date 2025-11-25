@@ -14,7 +14,7 @@ def has_gemini_key() -> bool:
     """
 
     if os.getenv("GOOGLE_API_KEY"):
-        return True  # ключ нашли — можно запускать тесты
+        return True
 
     pytest.skip(
         "No Gemini API key found in env. "
