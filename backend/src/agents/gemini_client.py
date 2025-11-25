@@ -450,7 +450,7 @@ class GeminiClient(ModelClient):
         """
         raise NotImplementedError("GeminiClient.update_file_metadata: not supported.")
 
-    def generate_from_file(self, file_id: str, generation_config=None) -> ModelResponse:
+    def generate_from_file(self, file_id: str, prompt: str, generation_config=None) -> ModelResponse:
         """
         Run the model on a file (typically summarization).
         """
@@ -458,7 +458,7 @@ class GeminiClient(ModelClient):
         model = self._resolve_model(cfg)
         gen_config = self._build_generate_config(cfg)
 
-        prompt = cfg.extra.get("prompt", "Summarize this file in detail.")
+        
         file_obj = self._client.files.get(name=file_id)
 
         resp = self._client.models.generate_content(
@@ -478,25 +478,7 @@ class GeminiClient(ModelClient):
     # ----------------------------------------------------------------------
 
     def estimate_cost(self, request: dict[str, Any]) -> CostInfo:
-        """
-        Minimal placeholder cost-estimator.
-        You can fill in actual pricing tables for each model if needed.
-        """
-        usage = request.get("usage") or {}
-        model = request.get("model") or self.default_model
-
-        breakdown = {
-            "model": model,
-            "prompt_tokens": usage.get("prompt_tokens", 0),
-            "completion_tokens": usage.get("completion_tokens", 0),
-            "note": "Pricing not implemented.",
-        }
-
-        return CostInfo(
-            estimated_price=0.0,
-            currency="USD",
-            breakdown=breakdown,
-        )
+        raise NotImplementedError("GeminiClient.estimate_cost is not implemented.")
 
     # ----------------------------------------------------------------------
     # Async execution wrapper

@@ -4,8 +4,6 @@ import pytest
 from agents.gemini_client import GeminiClient
 from agents.general_model_client import Message, GenerationConfig
 
-# Имена переменных окружения, где может лежать ключ Gemini
-GEMINI_ENV_VARS = ("GOOGLE_API_KEY", "GEMINI_API_KEY", "GEMINI_ENV_VAR")
 
 
 @pytest.fixture(scope="session")
@@ -14,9 +12,9 @@ def has_gemini_key() -> bool:
 
     If not – skip integration tests that actually call the real API.
     """
-    for name in GEMINI_ENV_VARS:
-        if os.getenv(name):
-            return True  # ключ нашли — можно запускать тесты
+
+    if os.getenv("GOOGLE_API_KEY"):
+        return True  # ключ нашли — можно запускать тесты
 
     pytest.skip(
         "No Gemini API key found in env. "

@@ -270,6 +270,7 @@ class ModelClient(ABC):
     def generate_from_file(
         self,
         file_id: str,
+        prompt: str,
         generation_config: GenerationConfig | None = None,
     ) -> ModelResponse:
         """
