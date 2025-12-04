@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from pydantic import BaseModel, Field
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, Literal, Awaitable, Iterable
@@ -8,18 +8,18 @@ from typing import Any, Literal, Awaitable, Iterable
 
 Role = Literal["user", "assistant", "system", "tool"]
 
-# Dataclasses to hold agent configuration
-@dataclass
-class Message:
+# Pydantic models to hold agent configuration
+
+class Message(BaseModel):
     """Single chat message in a conversation."""
 
     role: Role
     content: str
     # Arbitrary metadata, e.g. attachments, tool call info, message IDs, etc.
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class GenerationConfig:
+
+class GenerationConfig(BaseModel):
     """
     Shared configuration for generation / embedding calls.
 
@@ -30,38 +30,38 @@ class GenerationConfig:
     temperature: float = 0.7
     max_tokens: int | None = None
     top_p: float = 1.0
-    extra: dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class UsageInfo:
+
+class UsageInfo(BaseModel):
     """Token usage information returned by the provider."""
 
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
-    extra: dict[str, Any] = field(default_factory=dict)
+    extra: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class ModelResponse:
+
+class ModelResponse(BaseModel):
     """Unified response for text / chat operations."""
 
     text: str
     # Raw provider response (for debugging or advanced use).
     raw: Any | None = None
     usage: UsageInfo | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class EmbeddingResponse:
+
+class EmbeddingResponse(BaseModel):
     """Unified response for text/image embedding operations."""
 
     embeddings: list[list[float]]
     raw: Any | None = None
     usage: UsageInfo | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class ImageResponse:
+
+class ImageResponse(BaseModel):
     """
     Response for image-related operations.
 
@@ -71,29 +71,29 @@ class ImageResponse:
 
     images: list[Any]
     raw: Any | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class FileRef:
+
+class FileRef(BaseModel):
     """Reference to a file stored by the provider."""
 
     id: str
     filename: str
     bytes_size: int | None = None
     purpose: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class CostInfo:
+
+class CostInfo(BaseModel):
     """Estimated cost for a request."""
 
     estimated_price: float
     currency: str = "USD"
     # Provider-specific breakdown, e.g. per-modality pricing.
-    breakdown: dict[str, Any] = field(default_factory=dict)
+    breakdown: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class ModelInfo:
+
+class ModelInfo(BaseModel):
     """Metadata about a specific model available to the client."""
 
     name: str
@@ -103,10 +103,10 @@ class ModelInfo:
     supports_embeddings: bool
     supports_images: bool
     supports_tools: bool
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
-@dataclass
-class StreamEvent:
+
+class StreamEvent(BaseModel):
     """
     Single streaming event from the model.
 
@@ -119,7 +119,7 @@ class StreamEvent:
     type: Literal["text_delta", "done", "error"]
     text_delta: str | None = None
     raw: Any | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 class ModelClient(ABC):
     """
