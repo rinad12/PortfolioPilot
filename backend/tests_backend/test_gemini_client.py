@@ -30,7 +30,7 @@ def gemini_client(has_gemini_key: bool) -> GeminiClient:
     The client itself is responsible for reading the API key from os.environ.
     If no key is configured, we skip the tests instead of failing them.
     """
-    # Если сюда дошли — has_gemini_key уже либо вернул True, либо скипнул тесты
+
     return GeminiClient()
 
 
@@ -88,12 +88,12 @@ def test_usage_info_if_available(gemini_client: GeminiClient):
     if usage is None:
         pytest.skip("ModelResponse.usage is not implemented on GeminiClient")
 
-    # Под реальное определение UsageInfo:
+
     prompt_tokens = getattr(usage, "prompt_tokens", None)
     completion_tokens = getattr(usage, "completion_tokens", None)
     total_tokens = getattr(usage, "total_tokens", None)
 
-    # Если usage ещё не заполняется нормально – лучше скипнуть, а не фейлить
+
     if not all(isinstance(x, int) and x > 0 for x in (prompt_tokens, completion_tokens, total_tokens)):
         pytest.skip("UsageInfo does not contain populated token counts yet")
 
@@ -101,4 +101,17 @@ def test_usage_info_if_available(gemini_client: GeminiClient):
     assert completion_tokens > 0
     assert total_tokens >= prompt_tokens + completion_tokens
 
+@pytest.mark.integration
+def test_embedings_generation(gemini_client: GeminiClient):
+    """
+    Test that the GeminiClient can generate embeddings for a given input text.
+    """
+    input_text = "This is a test sentence for embedding generation."
+
+    embeddings = gemini_client.embed([input_text]).embeddings
+
+    assert isinstance(embeddings, list)
+    assert len(embeddings) == 1
+    assert isinstance(embeddings[0], list)
+    assert len(embeddings[0]) > 0  # Embedding vector should not be empty
 
