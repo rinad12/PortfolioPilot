@@ -1,0 +1,17 @@
+TEST RESULTS
+====================
+
+tests_backend/test_anthropic_client.py::test_real_generate_text_basic - PASSED
+tests_backend/test_anthropic_client.py::test_real_chat_non_streaming - PASSED
+tests_backend/test_anthropic_client.py::test_real_chat_streaming - PASSED
+tests_backend/test_gemini_client.py::test_generate_text_returns_non_empty_answer - PASSED
+tests_backend/test_gemini_client.py::test_chat_simple_math - PASSED
+tests_backend/test_gemini_client.py::test_usage_info_if_available - PASSED
+tests_backend/test_gemini_client.py::test_embedings_generation - PASSED
+tests_backend/test_open_ai.py::test_generate_text_basic - PASSED
+tests_backend/test_open_ai.py::test_chat_non_streaming - PASSED
+tests_backend/test_open_ai.py::test_chat_streaming - PASSED
+tests_backend/test_open_ai.py::test_embed_texts - PASSED
+tests_backend/test_open_ai.py::test_get_model_info - PASSED
+
+Overall exit status: 0

@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+
+    {
+      "name": "Python: pytest (backend)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "justMyCode": true,
+      "env": {
+        "ANTHROPIC_API_KEY": "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"
+      },
+      "args": [
+        "-vv",
+        "--junitxml=reports/junit-report.xml",
+        "tests_backend"
+      ]
+    }
+  ]
+}
