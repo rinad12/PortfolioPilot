@@ -20,7 +20,6 @@ The base record defines both structural and semantic attributes common to all da
   "category": "market",
   "symbol": "AAPL",
   "name": null,
-  "asset_type": "equity",
   "sector": null,
   "price": 192.34,
   "currency": "USD",
@@ -37,9 +36,9 @@ The base record defines both structural and semantic attributes common to all da
 ```
 {
   "category": "macro",
-  "id": "CPIAUCSL",
-  "name": "Consumer Price Index",
-  "type": "inflation"
+  "indicator_id": "CPIAUCSL",
+  "indicator_name": "Consumer Price Index",
+  "indicator_type": "inflation"
   "value": 312.23,
   "unit": "index",
   "frequency": "monthly",
