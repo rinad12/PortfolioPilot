@@ -179,8 +179,12 @@ npm run dev
 uv run script_name.py
 ```
 
-## Running Tests
+## Running Tests for backend
 
 ```bash
-uv run pytest -v
+ uv run --env-file ../.env pytest
+```
+
+## Running Tests for frontend
+```bash
 ```
