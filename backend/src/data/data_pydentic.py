@@ -1,7 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AnyUrl, field_validator
+import pycountry
+import re
 
 
 # Enums for categorical fields
@@ -47,7 +49,6 @@ class SentimentLabel(str, Enum):
     POSITIVE = "positive"
     NEGATIVE = "negative"
     NEUTRAL = "neutral"
-
 
 class EventType(str, Enum):
     """Event type for news data"""
@@ -112,13 +113,50 @@ class MarketData(BaseRecord):
     symbol: str = Field(..., description="Stock symbol (e.g., AAPL)")
     name: Optional[str] = Field(None, description="Company/asset name")
     sector: Optional[str] = Field(None, description="Sector classification")
-    price: float = Field(..., description="Current price")
+    price: float = Field(..., gt = 0, description="Current price")
     currency: str = Field(..., description="Currency (e.g., USD)")
-    change_abs: Optional[float] = Field(None, description="Absolute price change")
+    change_abs: Optional[float] = Field(None, gt = 0, description="Absolute price change")
     change_pct: Optional[float] = Field(None, description="Percentage price change")
     volume: int = Field(..., description="Trading volume")
     market_cap: Optional[float] = Field(None, description="Market capitalization")
-    volatility_100d: Optional[float] = Field(None, description="100-day volatility")
+    volatility_100d: Optional[float] = Field(None, gt = 0, description="100-day volatility")
+
+    @field_validator('currency')
+    @classmethod
+    def validate_currency(cls, v: str) -> str:
+        v = v.upper().strip()
+        
+        if not v.isascii() or not v.isalpha():
+            raise ValueError("Currency code must contain only English letters")
+
+        if len(v) != 3:
+            raise ValueError("Currency code must be exactly 3 letters (ISO 4217)")
+        
+ 
+        currency = pycountry.currencies.get(alpha_3=v)
+        if not currency:
+            raise ValueError(f"Invalid currency code: {v}. Must be valid ISO 4217 code")
+        
+        return v
+    
+    @field_validator('symbol')
+    @classmethod
+    def validate_symbol(cls, v: str) -> str:
+        v = v.upper().strip()
+        
+        if not v.isascii():
+            raise ValueError("Symbol must contain only English characters")
+        
+        if not re.match(r'^[A-Z0-9][A-Z0-9\.\-]{0,9}$', v):
+            raise ValueError(
+                "Invalid symbol format. Should be 1-10 characters, "
+                "English letters, numbers, dots or hyphens (e.g., AAPL, BRK.B)"
+            )
+        
+        if len(v) < 1 or len(v) > 10:
+            raise ValueError("Symbol must be 1-10 characters long")
+        
+        return v
 
 
 # Macro Data Payload
@@ -146,10 +184,31 @@ class NewsData(BaseRecord):
     summary: str = Field(..., description="News summary/body")
     publisher: str = Field(..., description="News publisher")
     published_at: datetime = Field(..., description="Publication timestamp")
-    url: str = Field(..., description="URL to news article")
+    url: AnyUrl = Field(..., description="URL to news article")
     related_assets: List[str] = Field(default_factory=list, description="Related asset symbols")
     sectors: List[str] = Field(default_factory=list, description="Related sectors")
     sentiment_label: SentimentLabel = Field(..., description="Sentiment classification")
     event_type: EventType = Field(..., description="Type of event")
     relevance: Relevance = Field(..., description="Relevance level")
 
+    @field_validator('related_assets')
+    @classmethod
+    def validate_related_assets(cls, v: List[str]) -> List[str]:
+        validated = []
+        
+        for ticker in v:
+            ticker = ticker.upper().strip()
+            
+
+            if not ticker.isascii():
+                raise ValueError(f"Ticker {ticker} must be English characters only")
+            
+            if not re.match(r'^[A-Z0-9][A-Z0-9\.\-]{0,9}$', ticker):
+                raise ValueError(
+                    f"Invalid ticker format: {ticker}. "
+                    f"Expected 1-10 characters: letters, numbers, dots, hyphens"
+                )
+            
+            validated.append(ticker)
+        
+        return validated
