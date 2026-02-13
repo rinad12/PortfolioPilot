@@ -55,6 +55,7 @@ dependencies = [
     "typing>=3.10.0.0",
     "google>=3.0.0",
     "google-genai>=1.52.0",
+    "pycountry>=24.6.1",
 ]
 
 
