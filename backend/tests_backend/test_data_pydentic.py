@@ -493,6 +493,68 @@ class TestMacroData:
         errors = exc_info.value.errors()
         assert len(errors) > 0
 
+    # --- Country validation tests ---
+
+    def _make_macro_data(self, country: str) -> MacroData:
+        """Helper to create MacroData with a specific country value"""
+        return MacroData(
+            id="CPIAUCSL",
+            source=SourceType.FRED,
+            category=CategoryType.MACRO,
+            created_at=datetime(2024, 1, 1, 12, 0, 0),
+            entity_type=EntityType.INDICATOR,
+            intent=IntentType.POLICY_CONTEXT,
+            indicator_name="Consumer Price Index",
+            indicator_type=MacroType.INFLATION,
+            value=305.5,
+            unit="Index 1982-1984=100",
+            frequency=Frequency.MONTHLY,
+            country=country,
+            policy_relevance=PolicyRelevance.HIGH,
+            narrative_role=NarrativeRole.INFLATION_CONTEXT,
+        )
+
+    def test_country_validation_valid_codes(self):
+        """Test valid ISO 3166-1 alpha-2 country codes"""
+        valid_codes = ["US", "GB", "DE", "JP", "CN"]
+        for code in valid_codes:
+            data = self._make_macro_data(code)
+            assert data.country == code
+
+    def test_country_validation_lowercase(self):
+        """Test country validation converts to uppercase"""
+        data = self._make_macro_data("us")
+        assert data.country == "US"
+
+    def test_country_validation_strips_whitespace(self):
+        """Test country validation trims surrounding spaces"""
+        data = self._make_macro_data("  US  ")
+        assert data.country == "US"
+
+    def test_country_validation_invalid_code(self):
+        """Test country validation rejects non-existent ISO code"""
+        with pytest.raises(ValidationError) as exc_info:
+            self._make_macro_data("ZZ")
+        assert "Invalid country code" in str(exc_info.value)
+
+    def test_country_validation_wrong_length(self):
+        """Test country validation rejects codes that are not 2 letters"""
+        with pytest.raises(ValidationError) as exc_info:
+            self._make_macro_data("USA")
+        assert "Country code must be exactly 2 letters" in str(exc_info.value)
+
+    def test_country_validation_non_alpha(self):
+        """Test country validation rejects non-alphabetic characters"""
+        with pytest.raises(ValidationError) as exc_info:
+            self._make_macro_data("U1")
+        assert "Country code must be English letters only" in str(exc_info.value)
+
+    def test_country_validation_non_ascii(self):
+        """Test country validation rejects non-ASCII characters"""
+        with pytest.raises(ValidationError) as exc_info:
+            self._make_macro_data("ЯФ")  # Cyrillic characters
+        assert "Country code must be English letters only" in str(exc_info.value)
+
 
 # -------------------------------------------------------------------------
 # Test NewsData

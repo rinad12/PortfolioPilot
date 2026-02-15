@@ -174,6 +174,25 @@ class MacroData(BaseRecord):
     policy_relevance: PolicyRelevance = Field(..., description="Policy relevance level")
     narrative_role: NarrativeRole = Field(..., description="Role in economic narrative")
 
+    @field_validator('country')
+    @classmethod
+    def validate_country(cls, v: str) -> str:
+        v = v.upper().strip()
+        
+        if not v.isascii() or not v.isalpha():
+            raise ValueError("Country code must be English letters only")
+        
+
+        if len(v) != 2:
+            raise ValueError("Country code must be exactly 2 letters (ISO 3166-1 alpha-2)")
+        
+
+        country = pycountry.countries.get(alpha_2=v)
+        if not country:
+            raise ValueError(f"Invalid country code: {v}. Must be valid ISO 3166-1 alpha-2 code")
+        
+        return v
+
 
 # News Data Payload
 class NewsData(BaseRecord):
