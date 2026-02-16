@@ -115,7 +115,7 @@ class MarketData(BaseRecord):
     sector: Optional[str] = Field(None, description="Sector classification")
     price: float = Field(..., gt = 0, description="Current price")
     currency: str = Field(..., description="Currency (e.g., USD)")
-    change_abs: Optional[float] = Field(None, gt = 0, description="Absolute price change")
+    change_abs: Optional[float] = Field(None, description="Absolute price change")
     change_pct: Optional[float] = Field(None, description="Percentage price change")
     volume: int = Field(..., description="Trading volume")
     market_cap: Optional[float] = Field(None, description="Market capitalization")
