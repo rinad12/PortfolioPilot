@@ -1,5 +1,9 @@
 import yfinance
+import pycountry
+import fredapi
+
 from .data_pydentic import MarketData, MacroData, NewsData
+
 
 
 def fetch_market_data(ticker):
@@ -31,3 +35,26 @@ def fetch_market_data(ticker):
     except Exception as e:
         print(f"Error fetching market data for {ticker}: {e}")
         return None
+
+def get_cpi_ticker(country_iso2):
+    '''Convert a country ISO2 code to the corresponding Fred CPI ticker symbol'''
+    country = pycountry.countries.get(alpha_2=country_iso2.upper())
+    if not country:
+        return None
+    
+    iso3 = country.alpha_3
+    return f"{iso3}CPIALLMINMEI"
+
+def fetch_macro_data(country):
+    '''Return macroeconomic data for a given country'''
+    #If USA
+    if country.upper() == 'USA':
+        cpi = 
+        return MacroData(
+            category = MacroData.CategoryType.MACRO,
+            name = 'United States',
+            cpi = 300.84,  # Example CPI value
+            gdp = 21433226.0,  # Example GDP value in millions USD
+            unemployment_rate = 3.5,  # Example unemployment rate
+            interest_rate = 0.25  # Example interest rate
+        )
