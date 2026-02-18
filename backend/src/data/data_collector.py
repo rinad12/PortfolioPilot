@@ -1,5 +1,6 @@
 import yfinance
 import pycountry
+from typing import Tuple
 from fredapi import Fred
 import os
 
@@ -7,7 +8,7 @@ from .data_pydentic import MarketData, MacroData, NewsData, MacroType, Relevance
 
 FRED_API_KEY = os.environ["FRED_API_KEY"]
 
-def fetch_market_data(ticker):
+def fetch_market_data(ticker: str) -> MarketData:
     """Fetch market data for a given ticker symbol using yfinance"""
     try:
         stock = yfinance.Ticker(ticker)
@@ -37,7 +38,7 @@ def fetch_market_data(ticker):
         print(f"Error fetching market data for {ticker}: {e}")
         return None
 
-def get_cpi_ticker(country_iso2):
+def get_cpi_ticker(country_iso2: str) -> str:
     '''Convert a country ISO2 code to the corresponding Fred CPI ticker symbol'''
     country = pycountry.countries.get(alpha_2=country_iso2.upper())
     if not country:
@@ -46,7 +47,7 @@ def get_cpi_ticker(country_iso2):
     iso3 = country.alpha_3
     return f"{iso3}CPIALLMINMEI"
 
-def convert_frew_to_freq(fred_freq):
+def convert_frew_to_freq(fred_freq: str) -> Frequency:
     '''Convert FRED frequency to our internal Frequency enum'''
     mapping = {
         'Daily': Frequency.DAILY,
@@ -57,7 +58,7 @@ def convert_frew_to_freq(fred_freq):
     }
     return mapping.get(fred_freq, None)
 
-def fetch_macro_data(country):
+def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
     '''Return macroeconomic data for a given country'''
     fred = Fred(FRED_API_KEY)
     # Get cpi of country
