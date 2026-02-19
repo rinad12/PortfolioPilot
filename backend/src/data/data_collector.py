@@ -72,43 +72,47 @@ def convert_frew_to_freq(fred_freq: str) -> Frequency:
 
 def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
     '''Return macroeconomic data for a given country'''
-    fred = Fred(FRED_API_KEY)
-    # Get cpi of country
-    cpi_ticker = get_cpi_ticker(country)
-    cpi = fred.get_series(cpi_ticker)
-    cpi = cpi.iloc[-1]
-    freq_cpi = fred.get_series_info('CPIAUCSL').frequency
+    try:
+        fred = Fred(FRED_API_KEY)
+        # Get cpi of country
+        cpi_ticker = get_cpi_ticker(country)
+        cpi = fred.get_series(cpi_ticker)
+        cpi = cpi.iloc[-1]
+        freq_cpi = fred.get_series_info('CPIAUCSL').frequency
 
-    cpi_data = MacroData(
-        idicator_id = cpi_ticker,
-        indicator_name = f"CPI for {country}",
-        indicator_type = MacroType.INFLATION,
-        value = cpi,
-        unit = "Index",
-        frequency = convert_frew_to_freq(freq_cpi),
-        country = country,
-        policy_relevance = Relevance.HIGH,
-        NarrativeRole = NarrativeRole.INFLATION_CONTEXT
-    )
-    # If country is USA, also get PCE data
-    if country.upper() == 'USA':
-        pce = fred.get_series('USGOOD')
-        pce = pce.iloc[-1]
-        freq_pce = fred.get_series_info('USGOOD').frequency
-        pce_data = MacroData(
-            idicator_id = 'USGOOD',
-            indicator_name = "PCE for USA",
+        cpi_data = MacroData(
+            idicator_id = cpi_ticker,
+            indicator_name = f"CPI for {country}",
             indicator_type = MacroType.INFLATION,
-            value = pce,
+            value = cpi,
             unit = "Index",
-            frequency = convert_frew_to_freq(freq_pce),
-            country = 'USA',
+            frequency = convert_frew_to_freq(freq_cpi),
+            country = country,
             policy_relevance = Relevance.HIGH,
-            NarrativeRole = NarrativeRole.MONETARY_POLICY
+            NarrativeRole = NarrativeRole.INFLATION_CONTEXT
         )
-        return cpi_data, pce_data
-    else:
-        return cpi_data, 
+        # If country is USA, also get PCE data
+        if country.upper() == 'USA':
+            pce = fred.get_series('USGOOD')
+            pce = pce.iloc[-1]
+            freq_pce = fred.get_series_info('USGOOD').frequency
+            pce_data = MacroData(
+                idicator_id = 'USGOOD',
+                indicator_name = "PCE for USA",
+                indicator_type = MacroType.INFLATION,
+                value = pce,
+                unit = "Index",
+                frequency = convert_frew_to_freq(freq_pce),
+                country = 'USA',
+                policy_relevance = Relevance.HIGH,
+                NarrativeRole = NarrativeRole.MONETARY_POLICY
+            )
+            return cpi_data, pce_data
+        else:
+            return cpi_data,
+    except Exception as e:
+        print(f"Error fetching macro data for {country}: {e}")
+        return tuple()
 
 def get_sentimental_label(text: str) -> SentimentLabel:
     sentiment_pipeline = SENTIMENT_PIPLINE
