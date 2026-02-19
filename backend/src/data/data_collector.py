@@ -3,18 +3,20 @@ import pycountry
 from typing import Tuple
 from fredapi import Fred
 from transformers import pipeline
+import numpy as np
 import os
 from .data_pydentic import (
-    MarketData, 
-    MacroData, 
-    NewsData, 
-    MacroType, 
-    Relevance, 
-    NarrativeRole, 
-    Frequency, 
+    MarketData,
+    MacroData,
+    NewsData,
+    MacroType,
+    Relevance,
+    PolicyRelevance,
+    CategoryType,
+    NarrativeRole,
+    Frequency,
     SentimentLabel,
     EventType,
-    Relevance
     )
 
 FRED_API_KEY = os.environ["FRED_API_KEY"]
@@ -34,7 +36,7 @@ def fetch_market_data(ticker: str) -> MarketData:
         volatility = log_returns.std()
         
         return MarketData(
-            category = MarketData.CategoryType.MARKET,
+            category = CategoryType.MARKET,
             symbol=ticker,
             name=info.get('shortName'),
             sector=info.get('sector'),
@@ -81,31 +83,31 @@ def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
         freq_cpi = fred.get_series_info('CPIAUCSL').frequency
 
         cpi_data = MacroData(
-            idicator_id = cpi_ticker,
+            indicator_id = cpi_ticker,
             indicator_name = f"CPI for {country}",
             indicator_type = MacroType.INFLATION,
             value = cpi,
             unit = "Index",
             frequency = convert_frew_to_freq(freq_cpi),
             country = country,
-            policy_relevance = Relevance.HIGH,
-            NarrativeRole = NarrativeRole.INFLATION_CONTEXT
+            policy_relevance = PolicyRelevance.HIGH,
+            narrative_role = NarrativeRole.INFLATION_CONTEXT
         )
         # If country is USA, also get PCE data
-        if country.upper() == 'USA':
+        if country.upper() == 'US':
             pce = fred.get_series('USGOOD')
             pce = pce.iloc[-1]
             freq_pce = fred.get_series_info('USGOOD').frequency
             pce_data = MacroData(
-                idicator_id = 'USGOOD',
+                indicator_id = 'USGOOD',
                 indicator_name = "PCE for USA",
                 indicator_type = MacroType.INFLATION,
                 value = pce,
                 unit = "Index",
                 frequency = convert_frew_to_freq(freq_pce),
-                country = 'USA',
-                policy_relevance = Relevance.HIGH,
-                NarrativeRole = NarrativeRole.MONETARY_POLICY
+                country = country,
+                policy_relevance = PolicyRelevance.HIGH,
+                narrative_role = NarrativeRole.MONETARY_POLICY
             )
             return cpi_data, pce_data
         else:
@@ -154,7 +156,7 @@ def fetch_news(ticker: str) -> Tuple[NewsData,...]:
         news_data_tuple = tuple()
         for item in news_items:
             news_data = NewsData(
-                category=NewsData.CategoryType.NEWS,
+                category=CategoryType.NEWS,
                 headline = item['content']['title'],
                 summary = item['content']['summary'],
                 publisher = item['content']['provider']['displayName'],
