@@ -2,11 +2,23 @@ import yfinance
 import pycountry
 from typing import Tuple
 from fredapi import Fred
+from transformers import pipeline
 import os
-
-from .data_pydentic import MarketData, MacroData, NewsData, MacroType, Relevance, NarrativeRole, Frequency
+from .data_pydentic import (
+    MarketData, 
+    MacroData, 
+    NewsData, 
+    MacroType, 
+    Relevance, 
+    NarrativeRole, 
+    Frequency, 
+    SentimentLabel,
+    EventType,
+    Relevance
+    )
 
 FRED_API_KEY = os.environ["FRED_API_KEY"]
+SENTIMENT_PIPLINE = pipeline(model="finiteautomata/bertweet-base-sentiment-analysis")
 
 def fetch_market_data(ticker: str) -> MarketData:
     """Fetch market data for a given ticker symbol using yfinance"""
@@ -97,3 +109,60 @@ def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
         return cpi_data, pce_data
     else:
         return cpi_data, 
+
+def get_sentimental_label(text: str) -> SentimentLabel:
+    sentiment_pipeline = SENTIMENT_PIPLINE
+    result = sentiment_pipeline(text)[0]
+    label = result['label']
+    if label == 'POS':
+        return SentimentLabel.POSITIVE
+    elif label == 'NEG':
+        return SentimentLabel.NEGATIVE
+    else:
+        return SentimentLabel.NEUTRAL
+
+def get_event_type(text: str) -> EventType:
+    '''Get event type based on keywords in the text'''
+    mapping = {
+        EventType.EARNINGS: ["Earnings", "Revenue", "Quarter"],
+        EventType.MERGER: ["Merger", "Acquisition", "Buyout" ],
+        EventType.REGULATORY: ["SEC", "Regulation", "Lawsuit"],
+        EventType.ECONOMIC: ["FED", "Inflation", "Rate hike"]
+    }
+
+    for event, keywords in mapping.items():
+        if any(key in text for key in keywords):
+            return event
+    
+    return EventType.OTHER
+
+def get_relevance(publisher: str) -> Relevance:
+    '''Determine relevance based on publisher'''
+    if publisher in ["Bloomberg", "Reuters", "Financial Times", "WSJ"]:
+        return Relevance.HIGH
+    return Relevance.MEDIUM
+
+def fetch_news(ticker: str) -> Tuple[NewsData,...]:
+    '''Fetch news articles related to a given ticker symbol using yfinance'''
+    try:
+        stock = yfinance.Ticker(ticker)
+        news_items = stock.news
+        news_data_tuple = tuple()
+        for item in news_items:
+            news_data = NewsData(
+                category=NewsData.CategoryType.NEWS,
+                headline = item['content']['title'],
+                summary = item['content']['summary'],
+                publisher = item['content']['provider']['displayName'],
+                url = item['content']['canonicalUrl']['url'],
+                related_assets = [ticker],
+                sectors = [stock.info.get('sector')],
+                sentiment_label = get_sentimental_label(item['content']['summary']),
+                event_type = get_event_type(item['content']['summary']),
+                relevance = get_relevance(item['content']['provider']['displayName'])
+            )
+            news_data_tuple += (news_data,)
+        return news_data_tuple
+    except Exception as e:
+        print(f"Error fetching news for {ticker}: {e}")
+        return tuple()
