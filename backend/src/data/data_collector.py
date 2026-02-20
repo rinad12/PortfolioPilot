@@ -5,6 +5,7 @@ from fredapi import Fred
 from transformers import pipeline
 import numpy as np
 import os
+import pytz
 import datetime
 from .data_pydentic import (
     Relevance,
@@ -55,6 +56,7 @@ def fetch_market_data(ticker: str) -> MarketData:
             symbol=ticker,
             name=info.get('shortName'),
             sector=info.get('sector'),
+            country=pycountry.countries.get(alpha_2=info.get('country').upper()).name if info.get('country') else None,
             price=info.get('currentPrice'),
             currency=info.get('currency'),
             change_abs=info.get('regularMarketChange'),
@@ -189,6 +191,7 @@ def fetch_news(ticker: str) -> Tuple[NewsData,...]:
                 headline = item['content']['title'],
                 summary = item['content']['summary'],
                 publisher = item['content']['provider']['displayName'],
+                published_at = datetime.datetime.fromisoformat(item['content']['pubDate'].replace('Z', '')).replace(tzinfo=pytz.utc),
                 url = item['content']['canonicalUrl']['url'],
                 related_assets = [ticker],
                 sectors = [stock.info.get('sector')],

@@ -58,6 +58,7 @@ dependencies = [
     "pycountry>=24.6.1",
     "fredapi>=0.5.2",
     "datetime>=6.0",
+    "pytz>=2025.2",
 ]
 
 

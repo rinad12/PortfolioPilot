@@ -159,7 +159,7 @@ class MacroData(BaseRecord):
     """Macroeconomic data from FRED"""
     
     category: CategoryType = Field(default=CategoryType.MACRO, description="Category type")
-    indicator_id: str = Field(..., alias="id", description="Indicator code (e.g., CPIAUCSL)")
+    indicator_id: str = Field(..., description="Indicator code (e.g., CPIAUCSL)")
     indicator_name: str = Field(..., description="Indicator name")
     indicator_type: MacroType = Field(..., description="Type of macro indicator")
     value: float = Field(..., description="Indicator value")
