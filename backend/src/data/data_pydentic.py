@@ -7,33 +7,11 @@ import re
 
 
 # Enums for categorical fields
-class SourceType(str, Enum):
-    """Data source type"""
-    YAHOO_FINANCE = "yahoo_finance"
-    FRED = "fred"
-    NEWS = "news"
-
-
 class CategoryType(str, Enum):
     """Data category type"""
     MARKET = "market"
     MACRO = "macro"
     NEWS = "news"
-
-
-class EntityType(str, Enum):
-    """Entity type"""
-    ASSET = "asset"
-    INDICATOR = "indicator"
-    EVENT = "event"
-
-
-class IntentType(str, Enum):
-    """Intent type for data usage"""
-    EXPLANATION = "explanation"
-    RISK_CONTEXT = "risk_context"
-    POLICY_CONTEXT = "policy_context"
-
 
 class MacroType(str, Enum):
     """Macro indicator type"""
@@ -95,13 +73,8 @@ class Relevance(str, Enum):
 # Base Record
 class BaseRecord(BaseModel):
     """Base record with common fields for all data categories"""
-    
-    id: str = Field(..., description="Unique identifier")
-    source: SourceType = Field(..., description="Data source")
     category: CategoryType = Field(..., description="Data category")
     created_at: datetime = Field(..., description="ISO-8601 datetime")
-    entity_type: EntityType = Field(..., description="Entity type")
-    intent: IntentType = Field(..., description="Intent for data usage")
 
 
 
@@ -113,6 +86,7 @@ class MarketData(BaseRecord):
     symbol: str = Field(..., description="Stock symbol (e.g., AAPL)")
     name: Optional[str] = Field(None, description="Company/asset name")
     sector: Optional[str] = Field(None, description="Sector classification")
+    country: str = Field(..., description="Country code")
     price: float = Field(..., gt = 0, description="Current price")
     currency: str = Field(..., description="Currency (e.g., USD)")
     change_abs: Optional[float] = Field(None, description="Absolute price change")
@@ -120,6 +94,25 @@ class MarketData(BaseRecord):
     volume: int = Field(..., description="Trading volume")
     market_cap: Optional[float] = Field(None, description="Market capitalization")
     volatility_100d: Optional[float] = Field(None, gt = 0, description="100-day volatility")
+
+    @field_validator('country')
+    @classmethod
+    def validate_country(cls, v: str) -> str:
+        v = v.upper().strip()
+        
+        if not v.isascii() or not v.isalpha():
+            raise ValueError("Country code must be English letters only")
+        
+
+        if len(v) != 2:
+            raise ValueError("Country code must be exactly 2 letters (ISO 3166-1 alpha-2)")
+        
+
+        country = pycountry.countries.get(alpha_2=v)
+        if not country:
+            raise ValueError(f"Invalid country code: {v}. Must be valid ISO 3166-1 alpha-2 code")
+        
+        return v
 
     @field_validator('currency')
     @classmethod
@@ -157,6 +150,8 @@ class MarketData(BaseRecord):
             raise ValueError("Symbol must be 1-10 characters long")
         
         return v
+    
+    
 
 
 # Macro Data Payload
