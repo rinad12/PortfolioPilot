@@ -5,11 +5,8 @@ from fredapi import Fred
 from transformers import pipeline
 import numpy as np
 import os
+import datetime
 from .data_pydentic import (
-    MarketData,
-    MacroData,
-    NewsData,
-    MacroType,
     Relevance,
     PolicyRelevance,
     CategoryType,
@@ -17,10 +14,26 @@ from .data_pydentic import (
     Frequency,
     SentimentLabel,
     EventType,
+    MarketData,
+    MacroData,
+    NewsData,
+    MacroType
     )
+
+# -------------------------------------------------------------------------
+# Data collection functions for market data, macroeconomic data, and news data
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# API keys and model initialization
+# -------------------------------------------------------------------------
 
 FRED_API_KEY = os.environ["FRED_API_KEY"]
 SENTIMENT_PIPLINE = pipeline(model="finiteautomata/bertweet-base-sentiment-analysis")
+
+# -------------------------------------------------------------------------
+# Market Data Collector
+# -------------------------------------------------------------------------
 
 def fetch_market_data(ticker: str) -> MarketData:
     """Fetch market data for a given ticker symbol using yfinance"""
@@ -34,9 +47,11 @@ def fetch_market_data(ticker: str) -> MarketData:
         log_returns = np.log(prices / prices.shift(1))
         log_returns = log_returns.dropna()
         volatility = log_returns.std()
+        timestamp = datetime.datetime.now()
         
         return MarketData(
             category = CategoryType.MARKET,
+            created_at = timestamp,
             symbol=ticker,
             name=info.get('shortName'),
             sector=info.get('sector'),
@@ -51,6 +66,10 @@ def fetch_market_data(ticker: str) -> MarketData:
     except Exception as e:
         print(f"Error fetching market data for {ticker}: {e}")
         return None
+
+# -------------------------------------------------------------------------
+# Macro Data Collector
+# -------------------------------------------------------------------------
 
 def get_cpi_ticker(country_iso2: str) -> str:
     '''Convert a country ISO2 code to the corresponding Fred CPI ticker symbol'''
@@ -81,8 +100,11 @@ def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
         cpi = fred.get_series(cpi_ticker)
         cpi = cpi.iloc[-1]
         freq_cpi = fred.get_series_info('CPIAUCSL').frequency
+        timestamp = datetime.datetime.now()
 
         cpi_data = MacroData(
+            category = CategoryType.MACRO,
+            created_at = timestamp,
             indicator_id = cpi_ticker,
             indicator_name = f"CPI for {country}",
             indicator_type = MacroType.INFLATION,
@@ -99,6 +121,8 @@ def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
             pce = pce.iloc[-1]
             freq_pce = fred.get_series_info('USGOOD').frequency
             pce_data = MacroData(
+                category = CategoryType.MACRO,
+                created_at = timestamp,
                 indicator_id = 'USGOOD',
                 indicator_name = "PCE for USA",
                 indicator_type = MacroType.INFLATION,
@@ -116,6 +140,9 @@ def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
         print(f"Error fetching macro data for {country}: {e}")
         return tuple()
 
+# -------------------------------------------------------------------------
+# News Data Collector
+# -------------------------------------------------------------------------
 def get_sentimental_label(text: str) -> SentimentLabel:
     sentiment_pipeline = SENTIMENT_PIPLINE
     result = sentiment_pipeline(text)[0]
@@ -154,9 +181,11 @@ def fetch_news(ticker: str) -> Tuple[NewsData,...]:
         stock = yfinance.Ticker(ticker)
         news_items = stock.news
         news_data_tuple = tuple()
+        timestamp = datetime.datetime.now()
         for item in news_items:
             news_data = NewsData(
                 category=CategoryType.NEWS,
+                created_at=timestamp,
                 headline = item['content']['title'],
                 summary = item['content']['summary'],
                 publisher = item['content']['provider']['displayName'],
