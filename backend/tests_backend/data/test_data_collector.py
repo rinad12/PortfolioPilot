@@ -7,15 +7,9 @@ Covers:
   Macro data    : fetch_macro_data       (mocked FRED API)
   News          : fetch_news             (mocked yfinance)
 
-Known limitations in the current implementation (documented by test comments):
-  - fetch_market_data : MarketData constructor is missing required BaseRecord fields
-                        (id, source, created_at, entity_type, intent) → Pydantic
-                        ValidationError caught by except block → always returns None
-  - fetch_macro_data  : MacroData constructor is missing required BaseRecord fields
-                        (id, source, created_at, entity_type, intent) → always returns ()
-  - fetch_news        : NewsData constructor is missing required BaseRecord fields
-                        (id, source, created_at, entity_type, intent, published_at)
-                        → always returns ()
+All fetch functions are tested with mocks that satisfy every Pydantic model
+requirement.  Each test that receives a model object asserts that every
+required (non-Optional) field is not None.
 """
 
 import os
@@ -49,7 +43,15 @@ from data.data_collector import (  # noqa: E402  (import after sys.modules patch
     get_relevance,
     get_sentimental_label,
 )
-from data.data_pydentic import EventType, Frequency, Relevance, SentimentLabel
+from data.data_pydentic import (
+    EventType,
+    Frequency,
+    MacroData,
+    MarketData,
+    NewsData,
+    Relevance,
+    SentimentLabel,
+)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -188,15 +190,20 @@ class TestGetSentimentalLabel:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _make_ticker_mock(info: dict | None = None) -> MagicMock:
-    """Return a yfinance.Ticker mock with sensible defaults."""
+    """Return a yfinance.Ticker mock with all fields required by MarketData.
+
+    'country' is the full country name as yfinance returns it; the collector
+    converts it to ISO-2 via pycountry.countries.search_fuzzy().
+    """
     default_info = {
         "shortName": "Apple Inc.",
-        "sector": "Technology",
+        "sector":    "Technology",
+        "country":   "United States",   # yfinance full name → collector → "US"
         "currentPrice": 180.5,
-        "currency": "USD",
+        "currency":  "USD",
         "regularMarketChange": 1.5,
         "regularMarketChangePercent": 0.84,
-        "volume": 55_000_000,
+        "volume":    55_000_000,
         "marketCap": 2_800_000_000_000,
     }
     mock = MagicMock()
@@ -204,6 +211,14 @@ def _make_ticker_mock(info: dict | None = None) -> MagicMock:
     prices = pd.Series([100.0 + i * 0.5 for i in range(100)])
     mock.history.return_value = pd.DataFrame({"Close": prices})
     return mock
+
+
+def _assert_market_data_no_none(data: MarketData) -> None:
+    """Assert every required MarketData field is not None."""
+    assert data.category   is not None
+    assert data.created_at is not None
+    assert data.symbol     is not None
+    assert data.country    is not None
 
 
 class TestFetchMarketData:
@@ -216,12 +231,42 @@ class TestFetchMarketData:
 
     @pytest.mark.parametrize("ticker", ["AAPL", "MSFT", "GOOGL", "TSLA", "AMZN"])
     @patch("data.data_collector.yfinance.Ticker")
-    def test_valid_tickers_return_none_due_to_missing_base_record_fields(self, mock_cls, ticker):
-        """MarketData extends BaseRecord which requires id, source, created_at,
-        entity_type, and intent fields.  None of these are passed in the constructor,
-        causing a Pydantic ValidationError caught by the except block → returns None."""
+    def test_valid_tickers_return_market_data_instance(self, mock_cls, ticker):
         mock_cls.return_value = _make_ticker_mock()
-        assert fetch_market_data(ticker) is None
+        result = fetch_market_data(ticker)
+        assert result is not None
+        assert isinstance(result, MarketData)
+
+    @pytest.mark.parametrize("ticker", ["AAPL", "MSFT", "GOOGL", "TSLA", "AMZN"])
+    @patch("data.data_collector.yfinance.Ticker")
+    def test_valid_tickers_no_none_in_required_fields(self, mock_cls, ticker):
+        mock_cls.return_value = _make_ticker_mock()
+        result = fetch_market_data(ticker)
+        assert result is not None
+        _assert_market_data_no_none(result)
+
+    @patch("data.data_collector.yfinance.Ticker")
+    def test_country_resolved_to_iso2(self, mock_cls):
+        """search_fuzzy('United States') must resolve to ISO-2 'US' to pass the
+        MarketData.country validator which requires exactly 2 letters."""
+        mock_cls.return_value = _make_ticker_mock()
+        result = fetch_market_data("AAPL")
+        assert result is not None
+        assert result.country == "US"
+
+    @patch("data.data_collector.yfinance.Ticker")
+    def test_missing_country_in_info_returns_none(self, mock_cls):
+        """country is a required field; when yfinance info has no 'country' key,
+        country=None is passed to MarketData → ValidationError → returns None."""
+        info_without_country = {
+            "shortName":    "Apple Inc.",
+            "sector":       "Technology",
+            "currentPrice": 180.5,
+            "currency":     "USD",
+            "volume":       55_000_000,
+        }
+        mock_cls.return_value = _make_ticker_mock(info=info_without_country)
+        assert fetch_market_data("AAPL") is None
 
     @pytest.mark.parametrize("ticker", ["INVALIDXYZ999", "FAKESTOCK123", "NOTREAL"])
     @patch("data.data_collector.yfinance.Ticker")
@@ -249,6 +294,21 @@ def _make_fred_mock(series_value: float = 120.5, frequency: str = "Monthly") -> 
     return mock
 
 
+def _assert_macro_data_no_none(data: MacroData) -> None:
+    """Assert every required MacroData field is not None."""
+    assert data.category         is not None
+    assert data.created_at       is not None
+    assert data.indicator_id     is not None
+    assert data.indicator_name   is not None
+    assert data.indicator_type   is not None
+    assert data.value            is not None
+    assert data.unit             is not None
+    assert data.frequency        is not None
+    assert data.country          is not None
+    assert data.policy_relevance is not None
+    assert data.narrative_role   is not None
+
+
 class TestFetchMacroData:
     @pytest.mark.parametrize("country", ["US", "DE", "GB", "FR", "JP", "CA"])
     @patch("data.data_collector.Fred")
@@ -257,42 +317,56 @@ class TestFetchMacroData:
         fetch_macro_data(country)
         mock_fred_cls.assert_called_once()
 
-    @pytest.mark.parametrize("country", ["US", "DE", "GB", "FR", "JP", "CA"])
+    @pytest.mark.parametrize("country", ["DE", "GB", "FR", "JP", "CA"])
     @patch("data.data_collector.Fred")
-    def test_valid_countries_return_tuple(self, mock_fred_cls, country):
-        """MacroData extends BaseRecord which requires id, source, created_at,
-        entity_type, and intent fields.  None of these are passed in the constructor,
-        causing a Pydantic ValidationError caught by the except block → returns ().
-        Will return a non-empty tuple once the missing BaseRecord fields are supplied."""
+    def test_non_us_countries_return_single_element_tuple(self, mock_fred_cls, country):
         mock_fred_cls.return_value = _make_fred_mock()
         result = fetch_macro_data(country)
         assert isinstance(result, tuple)
+        assert len(result) == 1
+        _assert_macro_data_no_none(result[0])
+
+    @patch("data.data_collector.Fred")
+    def test_us_returns_two_element_tuple(self, mock_fred_cls):
+        """US fetches both CPI and PCE (USGOOD) data → 2-element tuple."""
+        mock_fred_cls.return_value = _make_fred_mock()
+        result = fetch_macro_data("US")
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        for macro in result:
+            _assert_macro_data_no_none(macro)
+
+    @patch("data.data_collector.Fred")
+    def test_us_fetches_pce_series(self, mock_fred_cls):
+        """For country='US', USGOOD (PCE) must be requested from FRED."""
+        mock_fred = _make_fred_mock()
+        mock_fred_cls.return_value = mock_fred
+        fetch_macro_data("US")
+        called_series = [c.args[0] for c in mock_fred.get_series.call_args_list]
+        assert "USGOOD" in called_series
+
+    @patch("data.data_collector.Fred")
+    def test_non_us_does_not_fetch_pce(self, mock_fred_cls):
+        """For non-US countries, USGOOD must NOT be requested."""
+        mock_fred = _make_fred_mock()
+        mock_fred_cls.return_value = mock_fred
+        fetch_macro_data("DE")
+        called_series = [c.args[0] for c in mock_fred.get_series.call_args_list]
+        assert "USGOOD" not in called_series
 
     @pytest.mark.parametrize("invalid_country", ["XX", "ZZ", "INVALID", "", "123"])
     @patch("data.data_collector.Fred")
     def test_invalid_country_returns_empty_tuple(self, mock_fred_cls, invalid_country):
-        """get_cpi_ticker returns None for unknown ISO-2 codes; fred.get_series(None)
-        raises an exception which is caught and returns ()."""
+        """get_cpi_ticker returns None for unknown ISO-2 codes;
+        fred.get_series(None) raises an exception → returns ()."""
         mock_fred_cls.return_value = _make_fred_mock()
         assert fetch_macro_data(invalid_country) == ()
 
     @patch("data.data_collector.Fred")
     def test_iso3_usa_returns_empty_tuple(self, mock_fred_cls):
-        """'USA' is ISO-3, not ISO-2.  get_cpi_ticker('USA') returns None → error → ()."""
+        """'USA' is ISO-3, not ISO-2.  get_cpi_ticker('USA') returns None → ()."""
         mock_fred_cls.return_value = _make_fred_mock()
         assert fetch_macro_data("USA") == ()
-
-    @patch("data.data_collector.Fred")
-    def test_pce_branch_unreachable_due_to_earlier_validation_error(self, mock_fred_cls):
-        """PCE branch now correctly checks `country == 'US'` (ISO-2), but the
-        MacroData constructor for CPI raises a Pydantic ValidationError (missing
-        BaseRecord fields) before the PCE branch is reached.  The except block
-        catches that error and returns () → USGOOD is never fetched."""
-        mock_fred = _make_fred_mock()
-        mock_fred_cls.return_value = mock_fred
-        fetch_macro_data("US")
-        called_with = [c.args[0] for c in mock_fred.get_series_info.call_args_list]
-        assert "USGOOD" not in called_with
 
     @patch("data.data_collector.Fred")
     def test_fred_api_error_returns_empty_tuple(self, mock_fred_cls):
@@ -307,18 +381,35 @@ class TestFetchMacroData:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _make_news_item(
-    title: str = "Apple hits record high",
-    summary: str = "Stock climbed 5 pct after earnings beat",
+    title:     str = "Apple hits record high",
+    summary:   str = "Stock climbed 5 pct after Earnings beat",
     publisher: str = "Bloomberg",
+    pub_date:  str = "2024-01-15T10:30:00Z",
 ) -> dict:
+    """Return a yfinance-style news item dict with all fields fetch_news needs."""
     return {
         "content": {
-            "title": title,
-            "summary": summary,
-            "provider": {"displayName": publisher},
+            "title":        title,
+            "summary":      summary,
+            "provider":     {"displayName": publisher},
             "canonicalUrl": {"url": "https://example.com/news/1"},
+            "pubDate":      pub_date,
         }
     }
+
+
+def _assert_news_data_no_none(data: NewsData) -> None:
+    """Assert every required NewsData field is not None."""
+    assert data.category        is not None
+    assert data.created_at      is not None
+    assert data.headline        is not None
+    assert data.summary         is not None
+    assert data.publisher       is not None
+    assert data.published_at    is not None
+    assert data.url             is not None
+    assert data.sentiment_label is not None
+    assert data.event_type      is not None
+    assert data.relevance       is not None
 
 
 class TestFetchNews:
@@ -334,18 +425,38 @@ class TestFetchNews:
 
     @pytest.mark.parametrize("ticker", ["AAPL", "MSFT", "TSLA", "AMZN"])
     @patch("data.data_collector.yfinance.Ticker")
-    def test_valid_tickers_return_tuple(self, mock_cls, ticker):
-        """NewsData extends BaseRecord which requires id, source, created_at,
-        entity_type, and intent fields; NewsData also requires published_at.
-        None of these are passed in the constructor, causing a Pydantic
-        ValidationError caught by the except block → returns ().
-        Will return a non-empty tuple once the missing fields are supplied."""
+    def test_valid_tickers_return_news_data_tuple(self, mock_cls, ticker):
         mock_ticker = MagicMock()
         mock_ticker.news = [_make_news_item()]
         mock_ticker.info = {"sector": "Technology"}
         mock_cls.return_value = mock_ticker
         result = fetch_news(ticker)
         assert isinstance(result, tuple)
+        assert len(result) == 1
+        assert isinstance(result[0], NewsData)
+
+    @pytest.mark.parametrize("ticker", ["AAPL", "MSFT", "TSLA", "AMZN"])
+    @patch("data.data_collector.yfinance.Ticker")
+    def test_valid_tickers_no_none_in_required_fields(self, mock_cls, ticker):
+        mock_ticker = MagicMock()
+        mock_ticker.news = [_make_news_item()]
+        mock_ticker.info = {"sector": "Technology"}
+        mock_cls.return_value = mock_ticker
+        result = fetch_news(ticker)
+        assert len(result) == 1
+        _assert_news_data_no_none(result[0])
+
+    @patch("data.data_collector.yfinance.Ticker")
+    def test_missing_sector_is_none(self, mock_cls):
+        """When info has no 'sector' key, sector is None (Optional[str] field)
+        → NewsData is still created successfully."""
+        mock_ticker = MagicMock()
+        mock_ticker.news = [_make_news_item()]
+        mock_ticker.info = {}   # no 'sector' key
+        mock_cls.return_value = mock_ticker
+        result = fetch_news("AAPL")
+        assert len(result) == 1
+        assert result[0].sector is None
 
     @pytest.mark.parametrize("ticker", ["INVALIDXYZ999", "FAKESTOCK123", "NOTREAL"])
     @patch("data.data_collector.yfinance.Ticker")
@@ -362,14 +473,17 @@ class TestFetchNews:
         assert fetch_news("AAPL") == ()
 
     @patch("data.data_collector.yfinance.Ticker")
-    def test_multiple_news_items_processed(self, mock_cls):
+    def test_multiple_news_items_all_returned(self, mock_cls):
         mock_ticker = MagicMock()
         mock_ticker.news = [
-            _make_news_item("Apple up",    "Stock rose 3 pct",   "Bloomberg"),
-            _make_news_item("Market rally","Stocks surge",        "Reuters"),
-            _make_news_item("Tech gains",  "Sector outperforms",  "CNN"),
+            _make_news_item("Apple up",     "Stock rose 3 pct",   "Bloomberg"),
+            _make_news_item("Market rally", "Stocks surge",        "Reuters"),
+            _make_news_item("Tech gains",   "Sector outperforms",  "CNN"),
         ]
         mock_ticker.info = {"sector": "Technology"}
         mock_cls.return_value = mock_ticker
         result = fetch_news("AAPL")
         assert isinstance(result, tuple)
+        assert len(result) == 3
+        for item in result:
+            _assert_news_data_no_none(item)

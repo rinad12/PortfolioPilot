@@ -56,7 +56,7 @@ def fetch_market_data(ticker: str) -> MarketData:
             symbol=ticker,
             name=info.get('shortName'),
             sector=info.get('sector'),
-            country=pycountry.countries.get(alpha_2=info.get('country').upper()).name if info.get('country') else None,
+            country=pycountry.countries.search_fuzzy(info.get('country'))[0].alpha_2 if info.get('country') else None,
             price=info.get('currentPrice'),
             currency=info.get('currency'),
             change_abs=info.get('regularMarketChange'),
@@ -101,7 +101,7 @@ def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
         cpi_ticker = get_cpi_ticker(country)
         cpi = fred.get_series(cpi_ticker)
         cpi = cpi.iloc[-1]
-        freq_cpi = fred.get_series_info('CPIAUCSL').frequency
+        freq_cpi = fred.get_series_info(cpi_ticker).frequency
         timestamp = datetime.datetime.now()
 
         cpi_data = MacroData(
@@ -194,7 +194,7 @@ def fetch_news(ticker: str) -> Tuple[NewsData,...]:
                 published_at = datetime.datetime.fromisoformat(item['content']['pubDate'].replace('Z', '')).replace(tzinfo=pytz.utc),
                 url = item['content']['canonicalUrl']['url'],
                 related_assets = [ticker],
-                sectors = [stock.info.get('sector')],
+                sector = stock.info.get('sector'),
                 sentiment_label = get_sentimental_label(item['content']['summary']),
                 event_type = get_event_type(item['content']['summary']),
                 relevance = get_relevance(item['content']['provider']['displayName'])

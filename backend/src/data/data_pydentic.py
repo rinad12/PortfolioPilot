@@ -87,11 +87,11 @@ class MarketData(BaseRecord):
     name: Optional[str] = Field(None, description="Company/asset name")
     sector: Optional[str] = Field(None, description="Sector classification")
     country: str = Field(..., description="Country code")
-    price: float = Field(..., gt = 0, description="Current price")
-    currency: str = Field(..., description="Currency (e.g., USD)")
+    price: Optional[float] = Field(None, gt=0, description="Current price")
+    currency: Optional[str] = Field(None, description="Currency (e.g., USD)")
     change_abs: Optional[float] = Field(None, description="Absolute price change")
     change_pct: Optional[float] = Field(None, description="Percentage price change")
-    volume: int = Field(..., description="Trading volume")
+    volume: Optional[int] = Field(None, description="Trading volume")
     market_cap: Optional[float] = Field(None, description="Market capitalization")
     volatility_100d: Optional[float] = Field(None, gt = 0, description="100-day volatility")
 
@@ -116,7 +116,9 @@ class MarketData(BaseRecord):
 
     @field_validator('currency')
     @classmethod
-    def validate_currency(cls, v: str) -> str:
+    def validate_currency(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
         v = v.upper().strip()
         
         if not v.isascii() or not v.isalpha():
@@ -200,7 +202,7 @@ class NewsData(BaseRecord):
     published_at: datetime = Field(..., description="Publication timestamp")
     url: AnyUrl = Field(..., description="URL to news article")
     related_assets: List[str] = Field(default_factory=list, description="Related asset symbols")
-    sectors: List[str] = Field(default_factory=list, description="Related sectors")
+    sector: Optional[str] = Field(None, description="Sector classification")
     sentiment_label: SentimentLabel = Field(..., description="Sentiment classification")
     event_type: EventType = Field(..., description="Type of event")
     relevance: Relevance = Field(..., description="Relevance level")
