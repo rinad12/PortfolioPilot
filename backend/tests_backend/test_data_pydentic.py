@@ -4,10 +4,7 @@ from pydantic import ValidationError
 
 from data.data_pydentic import (
     # Enums
-    SourceType,
     CategoryType,
-    EntityType,
-    IntentType,
     MacroType,
     SentimentLabel,
     EventType,
@@ -30,29 +27,11 @@ from data.data_pydentic import (
 class TestEnums:
     """Test all enum classes"""
 
-    def test_source_type_enum(self):
-        """Test SourceType enum values"""
-        assert SourceType.YAHOO_FINANCE == "yahoo_finance"
-        assert SourceType.FRED == "fred"
-        assert SourceType.NEWS == "news"
-
     def test_category_type_enum(self):
         """Test CategoryType enum values"""
         assert CategoryType.MARKET == "market"
         assert CategoryType.MACRO == "macro"
         assert CategoryType.NEWS == "news"
-
-    def test_entity_type_enum(self):
-        """Test EntityType enum values"""
-        assert EntityType.ASSET == "asset"
-        assert EntityType.INDICATOR == "indicator"
-        assert EntityType.EVENT == "event"
-
-    def test_intent_type_enum(self):
-        """Test IntentType enum values"""
-        assert IntentType.EXPLANATION == "explanation"
-        assert IntentType.RISK_CONTEXT == "risk_context"
-        assert IntentType.POLICY_CONTEXT == "policy_context"
 
     def test_macro_type_enum(self):
         """Test MacroType enum values"""
@@ -116,31 +95,19 @@ class TestBaseRecord:
     def test_base_record_valid(self):
         """Test valid BaseRecord instantiation"""
         record = BaseRecord(
-            id="test-123",
-            source=SourceType.YAHOO_FINANCE,
             category=CategoryType.MARKET,
             created_at=datetime(2024, 1, 1, 12, 0, 0),
-            entity_type=EntityType.ASSET,
-            intent=IntentType.EXPLANATION,
         )
 
-        assert record.id == "test-123"
-        assert record.source == SourceType.YAHOO_FINANCE
         assert record.category == CategoryType.MARKET
-        assert record.entity_type == EntityType.ASSET
-        assert record.intent == IntentType.EXPLANATION
 
     def test_base_record_missing_required_fields(self):
         """Test BaseRecord with missing required fields"""
         with pytest.raises(ValidationError) as exc_info:
-            BaseRecord(
-                id="test-123",
-                source=SourceType.YAHOO_FINANCE,
-                # Missing: category, created_at, entity_type, intent
-            )
+            BaseRecord()
 
         errors = exc_info.value.errors()
-        assert len(errors) == 4  # 4 missing required fields
+        assert len(errors) == 2  # category and created_at
 
 
 # -------------------------------------------------------------------------
@@ -153,15 +120,12 @@ class TestMarketData:
     def test_market_data_valid(self):
         """Test valid MarketData instantiation"""
         data = MarketData(
-            id="market-1",
-            source=SourceType.YAHOO_FINANCE,
             category=CategoryType.MARKET,
             created_at=datetime(2024, 1, 1, 12, 0, 0),
-            entity_type=EntityType.ASSET,
-            intent=IntentType.EXPLANATION,
             symbol="AAPL",
             name="Apple Inc.",
             sector="Technology",
+            country="US",
             price=150.50,
             currency="USD",
             change_abs=2.5,
@@ -175,6 +139,7 @@ class TestMarketData:
         assert data.price == 150.50
         assert data.currency == "USD"
         assert data.volume == 1000000
+        assert data.country == "US"
 
     def test_market_data_symbol_validation_valid(self):
         """Test valid symbol formats"""
@@ -182,13 +147,10 @@ class TestMarketData:
 
         for symbol in valid_symbols:
             data = MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol=symbol,
+                country="US",
                 price=100.0,
                 currency="USD",
                 volume=1000,
@@ -198,13 +160,10 @@ class TestMarketData:
     def test_market_data_symbol_validation_lowercase(self):
         """Test symbol validation converts to uppercase"""
         data = MarketData(
-            id="test-1",
-            source=SourceType.YAHOO_FINANCE,
             category=CategoryType.MARKET,
             created_at=datetime.now(),
-            entity_type=EntityType.ASSET,
-            intent=IntentType.EXPLANATION,
             symbol="aapl",
+            country="US",
             price=100.0,
             currency="USD",
             volume=1000,
@@ -214,13 +173,10 @@ class TestMarketData:
     def test_market_data_symbol_validation_with_spaces(self):
         """Test symbol validation trims spaces"""
         data = MarketData(
-            id="test-1",
-            source=SourceType.YAHOO_FINANCE,
             category=CategoryType.MARKET,
             created_at=datetime.now(),
-            entity_type=EntityType.ASSET,
-            intent=IntentType.EXPLANATION,
             symbol="  AAPL  ",
+            country="US",
             price=100.0,
             currency="USD",
             volume=1000,
@@ -231,13 +187,10 @@ class TestMarketData:
         """Test symbol validation rejects symbols longer than 10 characters"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="VERYLONGSYMBOL",  # 14 characters
+                country="US",
                 price=100.0,
                 currency="USD",
                 volume=1000,
@@ -249,13 +202,10 @@ class TestMarketData:
         """Test symbol validation rejects invalid characters"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAP$",  # Invalid character $
+                country="US",
                 price=100.0,
                 currency="USD",
                 volume=1000,
@@ -267,13 +217,10 @@ class TestMarketData:
         """Test symbol validation rejects non-ASCII characters"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="АААА",  # Cyrillic characters
+                country="US",
                 price=100.0,
                 currency="USD",
                 volume=1000,
@@ -287,13 +234,10 @@ class TestMarketData:
 
         for currency in valid_currencies:
             data = MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=100.0,
                 currency=currency,
                 volume=1000,
@@ -303,13 +247,10 @@ class TestMarketData:
     def test_market_data_currency_validation_lowercase(self):
         """Test currency validation converts to uppercase"""
         data = MarketData(
-            id="test-1",
-            source=SourceType.YAHOO_FINANCE,
             category=CategoryType.MARKET,
             created_at=datetime.now(),
-            entity_type=EntityType.ASSET,
-            intent=IntentType.EXPLANATION,
             symbol="AAPL",
+            country="US",
             price=100.0,
             currency="usd",
             volume=1000,
@@ -320,13 +261,10 @@ class TestMarketData:
         """Test currency validation rejects invalid codes"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=100.0,
                 currency="ZZZ",  # Invalid ISO 4217 code
                 volume=1000,
@@ -338,13 +276,10 @@ class TestMarketData:
         """Test currency validation rejects wrong length"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=100.0,
                 currency="US",  # Only 2 characters
                 volume=1000,
@@ -356,13 +291,10 @@ class TestMarketData:
         """Test currency validation rejects non-alphabetic characters"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=100.0,
                 currency="U$D",
                 volume=1000,
@@ -374,13 +306,10 @@ class TestMarketData:
         """Test price must be greater than 0"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=0.0,  # Not allowed (gt=0)
                 currency="USD",
                 volume=1000,
@@ -392,13 +321,10 @@ class TestMarketData:
         """Test price cannot be negative"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=-10.0,
                 currency="USD",
                 volume=1000,
@@ -410,13 +336,10 @@ class TestMarketData:
         """Test change_abs must be greater than 0 when provided"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=100.0,
                 currency="USD",
                 volume=1000,
@@ -429,13 +352,10 @@ class TestMarketData:
         """Test volatility_100d must be greater than 0 when provided"""
         with pytest.raises(ValidationError) as exc_info:
             MarketData(
-                id="test-1",
-                source=SourceType.YAHOO_FINANCE,
                 category=CategoryType.MARKET,
                 created_at=datetime.now(),
-                entity_type=EntityType.ASSET,
-                intent=IntentType.EXPLANATION,
                 symbol="AAPL",
+                country="US",
                 price=100.0,
                 currency="USD",
                 volume=1000,
@@ -443,6 +363,80 @@ class TestMarketData:
             )
 
         assert "greater than 0" in str(exc_info.value).lower()
+
+    def test_market_data_country_validation_valid(self):
+        """Test valid ISO 3166-1 alpha-2 country codes"""
+        valid_countries = ["US", "GB", "DE", "JP", "CN"]
+
+        for country in valid_countries:
+            data = MarketData(
+                category=CategoryType.MARKET,
+                created_at=datetime.now(),
+                symbol="AAPL",
+                country=country,
+                price=100.0,
+                currency="USD",
+                volume=1000,
+            )
+            assert data.country == country.upper()
+
+    def test_market_data_country_validation_lowercase(self):
+        """Test country code is normalized to uppercase"""
+        data = MarketData(
+            category=CategoryType.MARKET,
+            created_at=datetime.now(),
+            symbol="AAPL",
+            country="us",
+            price=100.0,
+            currency="USD",
+            volume=1000,
+        )
+        assert data.country == "US"
+
+    def test_market_data_country_validation_invalid_code(self):
+        """Test country validation rejects invalid ISO codes"""
+        with pytest.raises(ValidationError) as exc_info:
+            MarketData(
+                category=CategoryType.MARKET,
+                created_at=datetime.now(),
+                symbol="AAPL",
+                country="XX",  # Not a valid ISO 3166-1 alpha-2 code
+                price=100.0,
+                currency="USD",
+                volume=1000,
+            )
+
+        assert "Invalid country code" in str(exc_info.value)
+
+    def test_market_data_country_validation_wrong_length(self):
+        """Test country validation rejects codes that are not 2 letters"""
+        with pytest.raises(ValidationError) as exc_info:
+            MarketData(
+                category=CategoryType.MARKET,
+                created_at=datetime.now(),
+                symbol="AAPL",
+                country="USA",  # 3 letters instead of 2
+                price=100.0,
+                currency="USD",
+                volume=1000,
+            )
+
+        assert "Country code must be exactly 2 letters" in str(exc_info.value)
+
+    def test_market_data_country_validation_non_alpha(self):
+        """Test country validation rejects non-alphabetic characters"""
+        with pytest.raises(ValidationError) as exc_info:
+            MarketData(
+                category=CategoryType.MARKET,
+                created_at=datetime.now(),
+                symbol="AAPL",
+                country="U1",
+                price=100.0,
+                currency="USD",
+                volume=1000,
+            )
+
+        assert "Country code must be English letters only" in str(exc_info.value)
 
 
 # -------------------------------------------------------------------------
@@ -456,11 +450,8 @@ class TestMacroData:
         """Test valid MacroData instantiation"""
         data = MacroData(
             id="CPIAUCSL",
-            source=SourceType.FRED,
             category=CategoryType.MACRO,
             created_at=datetime(2024, 1, 1, 12, 0, 0),
-            entity_type=EntityType.INDICATOR,
-            intent=IntentType.POLICY_CONTEXT,
             indicator_name="Consumer Price Index",
             indicator_type=MacroType.INFLATION,
             value=305.5,
@@ -482,16 +473,50 @@ class TestMacroData:
         with pytest.raises(ValidationError) as exc_info:
             MacroData(
                 id="CPIAUCSL",
-                source=SourceType.FRED,
                 category=CategoryType.MACRO,
                 created_at=datetime.now(),
-                entity_type=EntityType.INDICATOR,
-                intent=IntentType.POLICY_CONTEXT,
                 # Missing: indicator_name, indicator_type, value, unit, frequency, country, policy_relevance, narrative_role
             )
 
         errors = exc_info.value.errors()
         assert len(errors) > 0
+
+    def test_macro_data_country_validation_valid(self):
+        """Test valid country codes for MacroData"""
+        data = MacroData(
+            id="CPIAUCSL",
+            category=CategoryType.MACRO,
+            created_at=datetime.now(),
+            indicator_name="Consumer Price Index",
+            indicator_type=MacroType.INFLATION,
+            value=305.5,
+            unit="Index 1982-1984=100",
+            frequency=Frequency.MONTHLY,
+            country="de",  # lowercase should be normalized
+            policy_relevance=PolicyRelevance.HIGH,
+            narrative_role=NarrativeRole.INFLATION_CONTEXT,
+        )
+
+        assert data.country == "DE"
+
+    def test_macro_data_country_validation_invalid(self):
+        """Test MacroData rejects invalid country codes"""
+        with pytest.raises(ValidationError) as exc_info:
+            MacroData(
+                id="CPIAUCSL",
+                category=CategoryType.MACRO,
+                created_at=datetime.now(),
+                indicator_name="Consumer Price Index",
+                indicator_type=MacroType.INFLATION,
+                value=305.5,
+                unit="Index 1982-1984=100",
+                frequency=Frequency.MONTHLY,
+                country="XX",  # Invalid code
+                policy_relevance=PolicyRelevance.HIGH,
+                narrative_role=NarrativeRole.INFLATION_CONTEXT,
+            )
+
+        assert "Invalid country code" in str(exc_info.value)
 
 
 # -------------------------------------------------------------------------
@@ -504,12 +529,8 @@ class TestNewsData:
     def test_news_data_valid(self):
         """Test valid NewsData instantiation"""
         data = NewsData(
-            id="news-1",
-            source=SourceType.NEWS,
             category=CategoryType.NEWS,
             created_at=datetime(2024, 1, 1, 12, 0, 0),
-            entity_type=EntityType.EVENT,
-            intent=IntentType.EXPLANATION,
             headline="Apple announces record earnings",
             summary="Apple Inc. reported record quarterly earnings...",
             publisher="Reuters",
@@ -530,12 +551,8 @@ class TestNewsData:
     def test_news_data_url_validation_valid(self):
         """Test valid URL formats"""
         data = NewsData(
-            id="news-1",
-            source=SourceType.NEWS,
             category=CategoryType.NEWS,
             created_at=datetime.now(),
-            entity_type=EntityType.EVENT,
-            intent=IntentType.EXPLANATION,
             headline="Test headline",
             summary="Test summary",
             publisher="Test Publisher",
@@ -552,12 +569,8 @@ class TestNewsData:
         """Test invalid URL format"""
         with pytest.raises(ValidationError) as exc_info:
             NewsData(
-                id="news-1",
-                source=SourceType.NEWS,
                 category=CategoryType.NEWS,
                 created_at=datetime.now(),
-                entity_type=EntityType.EVENT,
-                intent=IntentType.EXPLANATION,
                 headline="Test headline",
                 summary="Test summary",
                 publisher="Test Publisher",
@@ -573,12 +586,8 @@ class TestNewsData:
     def test_news_data_related_assets_validation_valid(self):
         """Test valid related_assets"""
         data = NewsData(
-            id="news-1",
-            source=SourceType.NEWS,
             category=CategoryType.NEWS,
             created_at=datetime.now(),
-            entity_type=EntityType.EVENT,
-            intent=IntentType.EXPLANATION,
             headline="Test headline",
             summary="Test summary",
             publisher="Test Publisher",
@@ -595,12 +604,8 @@ class TestNewsData:
     def test_news_data_related_assets_validation_lowercase(self):
         """Test related_assets converts to uppercase"""
         data = NewsData(
-            id="news-1",
-            source=SourceType.NEWS,
             category=CategoryType.NEWS,
             created_at=datetime.now(),
-            entity_type=EntityType.EVENT,
-            intent=IntentType.EXPLANATION,
             headline="Test headline",
             summary="Test summary",
             publisher="Test Publisher",
@@ -617,12 +622,8 @@ class TestNewsData:
     def test_news_data_related_assets_validation_with_spaces(self):
         """Test related_assets trims spaces"""
         data = NewsData(
-            id="news-1",
-            source=SourceType.NEWS,
             category=CategoryType.NEWS,
             created_at=datetime.now(),
-            entity_type=EntityType.EVENT,
-            intent=IntentType.EXPLANATION,
             headline="Test headline",
             summary="Test summary",
             publisher="Test Publisher",
@@ -640,12 +641,8 @@ class TestNewsData:
         """Test related_assets rejects invalid ticker format"""
         with pytest.raises(ValidationError) as exc_info:
             NewsData(
-                id="news-1",
-                source=SourceType.NEWS,
                 category=CategoryType.NEWS,
                 created_at=datetime.now(),
-                entity_type=EntityType.EVENT,
-                intent=IntentType.EXPLANATION,
                 headline="Test headline",
                 summary="Test summary",
                 publisher="Test Publisher",
@@ -663,12 +660,8 @@ class TestNewsData:
         """Test related_assets rejects non-ASCII characters"""
         with pytest.raises(ValidationError) as exc_info:
             NewsData(
-                id="news-1",
-                source=SourceType.NEWS,
                 category=CategoryType.NEWS,
                 created_at=datetime.now(),
-                entity_type=EntityType.EVENT,
-                intent=IntentType.EXPLANATION,
                 headline="Test headline",
                 summary="Test summary",
                 publisher="Test Publisher",
@@ -685,12 +678,8 @@ class TestNewsData:
     def test_news_data_empty_related_assets(self):
         """Test NewsData with empty related_assets list"""
         data = NewsData(
-            id="news-1",
-            source=SourceType.NEWS,
             category=CategoryType.NEWS,
             created_at=datetime.now(),
-            entity_type=EntityType.EVENT,
-            intent=IntentType.EXPLANATION,
             headline="Test headline",
             summary="Test summary",
             publisher="Test Publisher",
@@ -707,12 +696,8 @@ class TestNewsData:
     def test_news_data_default_related_assets(self):
         """Test NewsData with default related_assets"""
         data = NewsData(
-            id="news-1",
-            source=SourceType.NEWS,
             category=CategoryType.NEWS,
             created_at=datetime.now(),
-            entity_type=EntityType.EVENT,
-            intent=IntentType.EXPLANATION,
             headline="Test headline",
             summary="Test summary",
             publisher="Test Publisher",

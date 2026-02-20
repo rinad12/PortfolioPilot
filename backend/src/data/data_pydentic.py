@@ -13,21 +13,6 @@ class CategoryType(str, Enum):
     MACRO = "macro"
     NEWS = "news"
 
-
-class EntityType(str, Enum):
-    """Entity type"""
-    ASSET = "asset"
-    INDICATOR = "indicator"
-    EVENT = "event"
-
-
-class IntentType(str, Enum):
-    """Intent type for data usage"""
-    EXPLANATION = "explanation"
-    RISK_CONTEXT = "risk_context"
-    POLICY_CONTEXT = "policy_context"
-
-
 class MacroType(str, Enum):
     """Macro indicator type"""
     INFLATION = "inflation"
