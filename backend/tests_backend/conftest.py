@@ -6,7 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # Load .env from project root so os.environ has API keys for tests
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = next(p for p in Path(__file__).resolve().parents if (p / "docker-compose.yml").exists())
 load_dotenv(_PROJECT_ROOT / ".env")
 
 # Will hold results for reporting at the end
