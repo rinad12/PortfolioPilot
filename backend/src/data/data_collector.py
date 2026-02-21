@@ -1,0 +1,206 @@
+import yfinance
+import pycountry
+from typing import Tuple
+from fredapi import Fred
+from transformers import pipeline
+import numpy as np
+import os
+import pytz
+import datetime
+from .data_pydentic import (
+    Relevance,
+    PolicyRelevance,
+    CategoryType,
+    NarrativeRole,
+    Frequency,
+    SentimentLabel,
+    EventType,
+    MarketData,
+    MacroData,
+    NewsData,
+    MacroType
+    )
+
+# -------------------------------------------------------------------------
+# Data collection functions for market data, macroeconomic data, and news data
+# -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# API keys and model initialization
+# -------------------------------------------------------------------------
+
+FRED_API_KEY = os.environ["FRED_API_KEY"]
+SENTIMENT_PIPLINE = pipeline(model="finiteautomata/bertweet-base-sentiment-analysis")
+
+# -------------------------------------------------------------------------
+# Market Data Collector
+# -------------------------------------------------------------------------
+
+def fetch_market_data(ticker: str) -> MarketData:
+    """Fetch market data for a given ticker symbol using yfinance"""
+    try:
+        stock = yfinance.Ticker(ticker)
+        info = stock.info
+
+        # Calculate volatility over the past 100 days
+        data = stock.history(period="100d")
+        prices = data['Close']
+        log_returns = np.log(prices / prices.shift(1))
+        log_returns = log_returns.dropna()
+        volatility = log_returns.std()
+        timestamp = datetime.datetime.now()
+        
+        return MarketData(
+            category = CategoryType.MARKET,
+            created_at = timestamp,
+            symbol=ticker,
+            name=info.get('shortName'),
+            sector=info.get('sector'),
+            country=pycountry.countries.search_fuzzy(info.get('country'))[0].alpha_2 if info.get('country') else None,
+            price=info.get('currentPrice'),
+            currency=info.get('currency'),
+            change_abs=info.get('regularMarketChange'),
+            change_pct=info.get('regularMarketChangePercent'),
+            volume=info.get('volume'),
+            market_cap=info.get('marketCap'),
+            volatility_100d=volatility
+        )
+    except Exception as e:
+        print(f"Error fetching market data for {ticker}: {e}")
+        return None
+
+# -------------------------------------------------------------------------
+# Macro Data Collector
+# -------------------------------------------------------------------------
+
+def get_cpi_ticker(country_iso2: str) -> str:
+    '''Convert a country ISO2 code to the corresponding Fred CPI ticker symbol'''
+    country = pycountry.countries.get(alpha_2=country_iso2.upper())
+    if not country:
+        return None
+    
+    iso3 = country.alpha_3
+    return f"{iso3}CPIALLMINMEI"
+
+def convert_frew_to_freq(fred_freq: str) -> Frequency:
+    '''Convert FRED frequency to our internal Frequency enum'''
+    mapping = {
+        'Daily': Frequency.DAILY,
+        'Weekly': Frequency.WEEKLY,
+        'Monthly': Frequency.MONTHLY,
+        'Quarterly': Frequency.QUARTERLY,
+        'Annual': Frequency.ANNUAL
+    }
+    return mapping.get(fred_freq, None)
+
+def fetch_macro_data(country: str) -> Tuple[MacroData,...]:
+    '''Return macroeconomic data for a given country'''
+    try:
+        fred = Fred(FRED_API_KEY)
+        # Get cpi of country
+        cpi_ticker = get_cpi_ticker(country)
+        cpi = fred.get_series(cpi_ticker)
+        cpi = cpi.iloc[-1]
+        freq_cpi = fred.get_series_info(cpi_ticker).frequency
+        timestamp = datetime.datetime.now()
+
+        cpi_data = MacroData(
+            category = CategoryType.MACRO,
+            created_at = timestamp,
+            indicator_id = cpi_ticker,
+            indicator_name = f"CPI for {country}",
+            indicator_type = MacroType.INFLATION,
+            value = cpi,
+            unit = "Index",
+            frequency = convert_frew_to_freq(freq_cpi),
+            country = country,
+            policy_relevance = PolicyRelevance.HIGH,
+            narrative_role = NarrativeRole.INFLATION_CONTEXT
+        )
+        # If country is USA, also get PCE data
+        if country.upper() == 'US':
+            pce = fred.get_series('USGOOD')
+            pce = pce.iloc[-1]
+            freq_pce = fred.get_series_info('USGOOD').frequency
+            pce_data = MacroData(
+                category = CategoryType.MACRO,
+                created_at = timestamp,
+                indicator_id = 'USGOOD',
+                indicator_name = "PCE for USA",
+                indicator_type = MacroType.INFLATION,
+                value = pce,
+                unit = "Index",
+                frequency = convert_frew_to_freq(freq_pce),
+                country = country,
+                policy_relevance = PolicyRelevance.HIGH,
+                narrative_role = NarrativeRole.MONETARY_POLICY
+            )
+            return cpi_data, pce_data
+        else:
+            return cpi_data,
+    except Exception as e:
+        print(f"Error fetching macro data for {country}: {e}")
+        return tuple()
+
+# -------------------------------------------------------------------------
+# News Data Collector
+# -------------------------------------------------------------------------
+def get_sentimental_label(text: str) -> SentimentLabel:
+    sentiment_pipeline = SENTIMENT_PIPLINE
+    result = sentiment_pipeline(text)[0]
+    label = result['label']
+    if label == 'POS':
+        return SentimentLabel.POSITIVE
+    elif label == 'NEG':
+        return SentimentLabel.NEGATIVE
+    else:
+        return SentimentLabel.NEUTRAL
+
+def get_event_type(text: str) -> EventType:
+    '''Get event type based on keywords in the text'''
+    mapping = {
+        EventType.EARNINGS: ["Earnings", "Revenue", "Quarter"],
+        EventType.MERGER: ["Merger", "Acquisition", "Buyout" ],
+        EventType.REGULATORY: ["SEC", "Regulation", "Lawsuit"],
+        EventType.ECONOMIC: ["FED", "Inflation", "Rate hike"]
+    }
+
+    for event, keywords in mapping.items():
+        if any(key in text for key in keywords):
+            return event
+    
+    return EventType.OTHER
+
+def get_relevance(publisher: str) -> Relevance:
+    '''Determine relevance based on publisher'''
+    if publisher in ["Bloomberg", "Reuters", "Financial Times", "WSJ"]:
+        return Relevance.HIGH
+    return Relevance.MEDIUM
+
+def fetch_news(ticker: str) -> Tuple[NewsData,...]:
+    '''Fetch news articles related to a given ticker symbol using yfinance'''
+    try:
+        stock = yfinance.Ticker(ticker)
+        news_items = stock.news
+        news_data_tuple = tuple()
+        timestamp = datetime.datetime.now()
+        for item in news_items:
+            news_data = NewsData(
+                category=CategoryType.NEWS,
+                created_at=timestamp,
+                headline = item['content']['title'],
+                summary = item['content']['summary'],
+                publisher = item['content']['provider']['displayName'],
+                published_at = datetime.datetime.fromisoformat(item['content']['pubDate'].replace('Z', '')).replace(tzinfo=pytz.utc),
+                url = item['content']['canonicalUrl']['url'],
+                related_assets = [ticker],
+                sector = stock.info.get('sector'),
+                sentiment_label = get_sentimental_label(item['content']['summary']),
+                event_type = get_event_type(item['content']['summary']),
+                relevance = get_relevance(item['content']['provider']['displayName'])
+            )
+            news_data_tuple += (news_data,)
+        return news_data_tuple
+    except Exception as e:
+        print(f"Error fetching news for {ticker}: {e}")
+        return tuple()

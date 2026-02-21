@@ -112,7 +112,7 @@ uvicorn portfoliopilot.main:app --reload
 
 5. Run tests:
 ```bash
-pytest
+uv run pytest
 ```
 
 ### Frontend Setup

@@ -1,9 +1,13 @@
 """Database configuration using Pydantic Settings."""
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
 from pydantic_settings import BaseSettings
+
+# config.py -> core/ -> src/ -> backend/ -> project root
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -18,7 +22,7 @@ class Settings(BaseSettings):
     database_url: Optional[str] = None
 
     class Config:
-        env_file = ".env"
+        env_file = str(_PROJECT_ROOT / ".env")
         case_sensitive = False
 
     def get_database_url(self) -> str:

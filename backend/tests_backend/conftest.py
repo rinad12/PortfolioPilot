@@ -1,6 +1,13 @@
 import os
+from pathlib import Path
+
 import pytest
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load .env from project root so os.environ has API keys for tests
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_PROJECT_ROOT / ".env")
 
 # Will hold results for reporting at the end
 _TEST_RESULTS = []
